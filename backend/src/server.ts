@@ -6,6 +6,7 @@ import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import healthRoutes from './routes/health.routes';
 import userRoutes from './routes/users';
+import parentChildRoutes from './routes/parentChild';
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
 import './config/firebase'; // Initialize Firebase Admin SDK
@@ -48,6 +49,7 @@ app.set('io', io);
 // Routes
 app.use('/api/health', healthRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/parent-child', parentChildRoutes);
 
 // 404 Handler
 app.use((_req: Request, res: Response) => {

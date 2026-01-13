@@ -13,15 +13,12 @@ class ApiClient {
             headers: {
                 'Content-Type': 'application/json',
             },
+            withCredentials: true, // Send cookies with requests
         });
 
-        // Request interceptor for adding auth token
+        // Request interceptor (cookies are sent automatically)
         this.client.interceptors.request.use(
             (config) => {
-                const token = this.getAuthToken();
-                if (token) {
-                    config.headers.Authorization = `Bearer ${token}`;
-                }
                 return config;
             },
             (error) => {
@@ -42,16 +39,8 @@ class ApiClient {
         );
     }
 
-    private getAuthToken(): string | null {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('authToken');
-        }
-        return null;
-    }
-
     private handleUnauthorized(): void {
         if (typeof window !== 'undefined') {
-            localStorage.removeItem('authToken');
             window.location.href = '/auth/login';
         }
     }
@@ -104,7 +93,8 @@ class ApiClient {
 }
 
 // Export singleton instance
-export const apiClient = new ApiClient();
+const api = new ApiClient();
+export const apiClient = api;
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -214,3 +204,6 @@ export const API_ENDPOINTS = {
         AVATAR: '/api/upload/avatar',
     },
 };
+
+// Export default instance
+export default api;

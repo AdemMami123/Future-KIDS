@@ -125,6 +125,87 @@ export const requireRole = (...allowedRoles: Array<'teacher' | 'student' | 'pare
 };
 
 /**
+ * Combined authentication and role-based access control
+ * Usage: authenticate() for any authenticated user
+ *        authenticate(['teacher', 'student']) for specific roles
+ */
+export const authenticate = (allowedRoles?: Array<'teacher' | 'student' | 'parent'>) => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      // Get token from cookie
+      const token = req.cookies?.authToken;
+
+      if (!token) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required. Please log in.',
+        });
+        return;
+      }
+
+      // Verify JWT token
+      const decoded = jwt.verify(token, JWT_SECRET) as {
+        userId: string;
+        email: string;
+        role: 'teacher' | 'student' | 'parent';
+      };
+
+      // Verify user still exists in Firebase Auth
+      try {
+        await auth.getUser(decoded.userId);
+      } catch (error) {
+        res.status(401).json({
+          success: false,
+          message: 'Invalid authentication. User not found.',
+        });
+        return;
+      }
+
+      // Attach user data to request
+      req.user = {
+        userId: decoded.userId,
+        email: decoded.email,
+        role: decoded.role,
+      };
+
+      // Check role-based access if roles are specified
+      if (allowedRoles && allowedRoles.length > 0) {
+        if (!allowedRoles.includes(req.user.role)) {
+          res.status(403).json({
+            success: false,
+            message: 'Access denied. Insufficient permissions.',
+          });
+          return;
+        }
+      }
+
+      next();
+    } catch (error) {
+      if (error instanceof jwt.TokenExpiredError) {
+        res.status(401).json({
+          success: false,
+          message: 'Session expired. Please log in again.',
+        });
+        return;
+      }
+
+      if (error instanceof jwt.JsonWebTokenError) {
+        res.status(401).json({
+          success: false,
+          message: 'Invalid authentication token.',
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Authentication error occurred.',
+      });
+    }
+  };
+};
+
+/**
  * Optional authentication - attaches user if token exists but doesn't require it
  */
 export const optionalAuth = async (

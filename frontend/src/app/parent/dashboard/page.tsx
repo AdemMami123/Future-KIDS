@@ -4,10 +4,12 @@ import React from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { Users, LogOut } from 'lucide-react';
+import { Users, LogOut, UserPlus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function ParentDashboardPage() {
   const { user, signOut } = useAuth();
+  const router = useRouter();
 
   return (
     <ProtectedRoute allowedRoles={['parent']}>
@@ -44,20 +46,20 @@ export default function ParentDashboardPage() {
             <h1 className="text-3xl font-bold text-gray-800 mb-4">
               Welcome, {user?.firstName}! 👨‍👩‍👧‍👦
             </h1>
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-6 mb-6">
               <h2 className="text-lg font-semibold text-purple-900 mb-2">
-                Authentication Successful!
+                Parent Dashboard
               </h2>
               <p className="text-purple-800 mb-4">
-                Your parent dashboard is ready. This is a placeholder page that will be replaced with
-                the full parent dashboard features including:
+                Manage your children&apos;s accounts and monitor their academic progress.
               </p>
-              <ul className="list-disc list-inside text-purple-800 space-y-1">
-                <li>Link to children's accounts</li>
-                <li>Monitor children's progress</li>
-                <li>View quiz results and statistics</li>
-                <li>Generate performance reports</li>
-              </ul>
+              <button
+                onClick={() => router.push('/dashboard/parent/children')}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium inline-flex items-center gap-2 transition-colors"
+              >
+                <UserPlus className="w-5 h-5" />
+                Manage Children
+              </button>
             </div>
             <div className="mt-6 p-4 bg-gray-50 rounded-lg">
               <h3 className="font-semibold text-gray-800 mb-2">Your Profile:</h3>

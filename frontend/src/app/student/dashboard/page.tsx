@@ -4,10 +4,12 @@ import React from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { BookOpen, LogOut } from 'lucide-react';
+import { BookOpen, LogOut, Settings } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function StudentDashboardPage() {
   const { user, signOut } = useAuth();
+  const router = useRouter();
 
   return (
     <ProtectedRoute allowedRoles={['student']}>
@@ -23,6 +25,13 @@ export default function StudentDashboardPage() {
                 <span className="text-gray-700">
                   {user?.firstName} {user?.lastName}
                 </span>
+                <button
+                  onClick={() => router.push('/dashboard/student/settings')}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                  Parent Links
+                </button>
                 <button
                   onClick={() => signOut()}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
@@ -44,20 +53,20 @@ export default function StudentDashboardPage() {
             <h1 className="text-3xl font-bold text-gray-800 mb-4">
               Welcome, {user?.firstName}! 📚
             </h1>
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
               <h2 className="text-lg font-semibold text-green-900 mb-2">
-                Authentication Successful!
+                Student Dashboard
               </h2>
               <p className="text-green-800 mb-4">
-                Your student dashboard is ready. This is a placeholder page that will be replaced with
-                the full student dashboard features including:
+                Your learning journey starts here. Manage parent account links and track your progress.
               </p>
-              <ul className="list-disc list-inside text-green-800 space-y-1">
-                <li>Join live quiz games</li>
-                <li>Take practice quizzes</li>
-                <li>View your progress and scores</li>
-                <li>Track achievements</li>
-              </ul>
+              <button
+                onClick={() => router.push('/dashboard/student/settings')}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium inline-flex items-center gap-2 transition-colors"
+              >
+                <Settings className="w-5 h-5" />
+                Manage Parent Links
+              </button>
             </div>
             <div className="mt-6 p-4 bg-gray-50 rounded-lg">
               <h3 className="font-semibold text-gray-800 mb-2">Your Profile:</h3>
