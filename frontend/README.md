@@ -18,13 +18,30 @@ npm install
 
 2. Copy environment variables:
 ```bash
-cp env.example.txt .env.local
+cp .env.example .env.local
 ```
 
-3. Update `.env.local` with your configuration:
-   - Firebase credentials
-   - Backend API URL
-   - Socket.io URL
+3. Configure Firebase:
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Select your project or create a new one
+   - Navigate to Project Settings > General
+   - Under "Your apps", find your web app config
+   - Copy the configuration values to `.env.local`:
+   ```
+   NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+   NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
+   NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your-measurement-id
+   ```
+
+4. Update backend API URLs in `.env.local`:
+   ```
+   NEXT_PUBLIC_API_URL=http://localhost:5000
+   NEXT_PUBLIC_SOCKET_URL=http://localhost:5000
+   ```
 
 4. Run the development server:
 ```bash
@@ -51,6 +68,69 @@ src/
 │   ├── game/             # Live game components
 │   └── shared/           # Shared/common components
 ├── lib/                   # Utility functions
+│   └── api.ts            # API client
+├── hooks/                 # Custom React hooks
+├── contexts/              # React Context providers
+├── config/                # Configuration files
+│   └── firebase.ts       # Firebase configuration
+└── types/                 # TypeScript type definitions
+```
+
+## 🔥 Firebase Setup
+
+### Getting Firebase Credentials
+
+1. **Create Firebase Project:**
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Click "Add project" or select existing project
+   - Follow the setup wizard
+
+2. **Enable Firebase Services:**
+   - **Authentication**: Enable Email/Password provider
+     - Go to Authentication > Sign-in method
+     - Enable "Email/Password"
+   - **Firestore Database**: Create database in production mode
+     - Go to Firestore Database > Create database
+   - **Storage** (optional): For profile images
+     - Go to Storage > Get started
+
+3. **Get Web App Config:**
+   - Go to Project Settings (gear icon) > General
+   - Scroll to "Your apps" section
+   - Click "Web app" icon (</>) or select existing web app
+   - Copy the firebaseConfig object values
+   - Paste into your `.env.local` file
+
+4. **Configure Authentication:**
+   - The app uses Firebase Authentication for user management
+   - Role-based access control is handled via custom claims (set by backend)
+   - Users are created with roles: `teacher`, `student`, or `parent`
+
+### Firebase Configuration File
+
+The Firebase configuration is located at [src/config/firebase.ts](src/config/firebase.ts) and includes:
+
+- Firebase app initialization
+- Authentication instance with helper functions:
+  - `signUp(email, password, displayName)` - Create new user
+  - `signIn(email, password)` - Sign in user
+  - `logOut()` - Sign out current user
+  - `resetPassword(email)` - Send password reset email
+  - `updateUserProfile(updates)` - Update user profile
+  - `getCurrentUserToken()` - Get ID token for API requests
+- Firestore database instance
+- Analytics (optional, only in browser)
+
+### Authentication Flow
+
+1. User signs up/signs in via Firebase Authentication
+2. Frontend gets ID token from Firebase
+3. ID token is sent to backend API for verification
+4. Backend validates token and returns user data with role
+5. Frontend redirects based on role:
+   - Teachers → `/teacher/dashboard`
+   - Students → `/student/dashboard`
+   - Parents → `/parent/dashboard`
 │   ├── api.ts            # API client
 │   ├── utils.ts          # Helper functions
 │   └── firebase.ts       # Firebase config
