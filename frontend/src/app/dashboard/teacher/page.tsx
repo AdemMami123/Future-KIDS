@@ -28,24 +28,11 @@ export default function TeacherDashboard() {
   const loadStats = async () => {
     try {
       setLoading(true);
-      setError('');
       const data = await getTeacherStats();
-      setStats(data || {
-        totalClasses: 0,
-        totalStudents: 0,
-        totalQuizzes: 0,
-        activeGames: 0,
-      });
+      setStats(data);
     } catch (error: any) {
       console.error('Failed to load stats:', error);
       setError(error.response?.data?.message || 'Failed to load statistics');
-      // Keep default stats on error
-      setStats({
-        totalClasses: 0,
-        totalStudents: 0,
-        totalQuizzes: 0,
-        activeGames: 0,
-      });
     } finally {
       setLoading(false);
     }
