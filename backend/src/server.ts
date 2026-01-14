@@ -12,6 +12,7 @@ import quizRoutes from './routes/quizzes';
 import uploadRoutes from './routes/upload';
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
+import { setupGameHandlers } from './socket/gameHandlers';
 import './config/firebase'; // Initialize Firebase Admin SDK
 
 // Load environment variables
@@ -28,6 +29,9 @@ const io = new SocketIOServer(httpServer, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
+  path: '/socket.io/',
+  transports: ['polling', 'websocket'],
+  allowEIO3: true,
 });
 
 // Configuration
@@ -68,16 +72,8 @@ app.use((_req: Request, res: Response) => {
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-  console.log(`✅ Client connected: ${socket.id}`);
-
-  socket.on('disconnect', () => {
-    console.log(`❌ Client disconnected: ${socket.id}`);
-  });
-
-  // Add more socket event handlers here as needed
-});
+// Socket.IO connection handling - Setup game handlers
+setupGameHandlers(io);
 
 // Start server
 httpServer.listen(PORT, () => {
