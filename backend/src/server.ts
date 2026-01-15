@@ -12,6 +12,7 @@ import quizRoutes from './routes/quizzes';
 import uploadRoutes from './routes/upload';
 import gameResultsRoutes from './routes/gameResults';
 import studentRoutes from './routes/students';
+import quizAttemptsRoutes from './routes/quizAttempts';
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
 import { setupGameHandlers } from './socket/gameHandlers';
@@ -64,6 +65,7 @@ app.use('/api/quizzes', quizRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/games', gameResultsRoutes);
 app.use('/api/students', studentRoutes);
+app.use('/api/quiz-attempts', quizAttemptsRoutes);
 
 // 404 Handler
 app.use((_req: Request, res: Response) => {

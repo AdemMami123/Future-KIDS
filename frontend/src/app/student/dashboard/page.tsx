@@ -277,16 +277,16 @@ function StudentDashboardContent() {
                               {attempt.quiz?.subject}
                             </span>
                             <span>
-                              {new Date(attempt.completedAt.toDate()).toLocaleDateString()}
+                              {attempt.completedAt ? new Date(attempt.completedAt).toLocaleDateString() : 'N/A'}
                             </span>
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="text-2xl font-bold text-purple-600">
-                            {attempt.percentage.toFixed(0)}%
+                            {attempt.percentage?.toFixed(0) || 0}%
                           </div>
                           <div className="text-sm text-gray-500">
-                            {attempt.score} points
+                            {attempt.score || 0} points
                           </div>
                         </div>
                       </motion.div>
