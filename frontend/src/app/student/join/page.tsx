@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,7 +19,7 @@ interface Participant {
   avatarUrl?: string;
 }
 
-export default function JoinGamePage() {
+function JoinGameContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -313,5 +313,19 @@ export default function JoinGamePage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function JoinGamePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        </div>
+      }
+    >
+      <JoinGameContent />
+    </Suspense>
   );
 }

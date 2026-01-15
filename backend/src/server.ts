@@ -10,6 +10,8 @@ import parentChildRoutes from './routes/parentChild';
 import classRoutes from './routes/classes';
 import quizRoutes from './routes/quizzes';
 import uploadRoutes from './routes/upload';
+import gameResultsRoutes from './routes/gameResults';
+import studentRoutes from './routes/students';
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
 import { setupGameHandlers } from './socket/gameHandlers';
@@ -60,6 +62,8 @@ app.use('/api/parent-child', parentChildRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/games', gameResultsRoutes);
+app.use('/api/students', studentRoutes);
 
 // 404 Handler
 app.use((_req: Request, res: Response) => {

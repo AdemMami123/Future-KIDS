@@ -368,6 +368,156 @@ export const setupGameHandlers = (io: Server) => {
       }
     );
 
+    // Next question - Teacher advances to next question
+    socket.on(
+      'next-question',
+      async (
+        data: { sessionId: string; teacherId: string },
+        callback: (response: {
+          success: boolean;
+          question?: any;
+          questionIndex?: number;
+          error?: string;
+        }) => void
+      ) => {
+        try {
+          const result = await gameSessionService.advanceToNextQuestion(
+            data.sessionId,
+            data.teacherId
+          );
+
+          // Broadcast to all participants
+          io.to(data.sessionId).emit('question-started', {
+            question: result.question,
+            questionIndex: result.questionIndex,
+            totalQuestions: result.totalQuestions,
+          });
+
+          callback({
+            success: true,
+            question: result.question,
+            questionIndex: result.questionIndex,
+          });
+
+          console.log(
+            `📝 Question ${result.questionIndex + 1} started in session: ${data.sessionId}`
+          );
+        } catch (error: any) {
+          console.error('Error advancing question:', error);
+          callback({
+            success: false,
+            error: error.message || 'Failed to advance question',
+          });
+        }
+      }
+    );
+
+    // Question timeout - Auto-advance
+    socket.on(
+      'question-timeout',
+      async (
+        data: { sessionId: string },
+        callback: (response: { success: boolean; error?: string }) => void
+      ) => {
+        try {
+          // Mark timeout and prepare for next question
+          io.to(data.sessionId).emit('question-timed-out', {
+            sessionId: data.sessionId,
+          });
+
+          callback({
+            success: true,
+          });
+
+          console.log(`⏰ Question timed out in session: ${data.sessionId}`);
+        } catch (error: any) {
+          console.error('Error handling timeout:', error);
+          callback({
+            success: false,
+            error: error.message || 'Failed to handle timeout',
+          });
+        }
+      }
+    );
+
+    // Pause game
+    socket.on(
+      'pause-game',
+      async (
+        data: { sessionId: string; teacherId: string },
+        callback: (response: { success: boolean; error?: string }) => void
+      ) => {
+        try {
+          const session = await gameSessionService.getGameSession(
+            data.sessionId
+          );
+
+          if (!session || session.teacherId !== data.teacherId) {
+            callback({
+              success: false,
+              error: 'Unauthorized',
+            });
+            return;
+          }
+
+          io.to(data.sessionId).emit('game-paused', {
+            sessionId: data.sessionId,
+          });
+
+          callback({
+            success: true,
+          });
+
+          console.log(`⏸️ Game paused: ${data.sessionId}`);
+        } catch (error: any) {
+          console.error('Error pausing game:', error);
+          callback({
+            success: false,
+            error: error.message || 'Failed to pause game',
+          });
+        }
+      }
+    );
+
+    // Resume game
+    socket.on(
+      'resume-game',
+      async (
+        data: { sessionId: string; teacherId: string },
+        callback: (response: { success: boolean; error?: string }) => void
+      ) => {
+        try {
+          const session = await gameSessionService.getGameSession(
+            data.sessionId
+          );
+
+          if (!session || session.teacherId !== data.teacherId) {
+            callback({
+              success: false,
+              error: 'Unauthorized',
+            });
+            return;
+          }
+
+          io.to(data.sessionId).emit('game-resumed', {
+            sessionId: data.sessionId,
+          });
+
+          callback({
+            success: true,
+          });
+
+          console.log(`▶️ Game resumed: ${data.sessionId}`);
+        } catch (error: any) {
+          console.error('Error resuming game:', error);
+          callback({
+            success: false,
+            error: error.message || 'Failed to resume game',
+          });
+        }
+      }
+    );
+
     // End game
     socket.on(
       'end-game',

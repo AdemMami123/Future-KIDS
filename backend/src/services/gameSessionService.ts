@@ -344,6 +344,144 @@ export const gameSessionService = {
     }
   },
 
+  // Advance to next question
+  async advanceToNextQuestion(
+    sessionId: string,
+    teacherId: string
+  ): Promise<{ question: any; questionIndex: number; totalQuestions: number }> {
+    try {
+      const session = await this.getGameSession(sessionId);
+      if (!session || session.teacherId !== teacherId) {
+        throw new Error('Unauthorized or session not found');
+      }
+
+      // Get quiz to fetch questions
+      const quizDoc = await firestore.collection('quizzes').doc(session.quizId).get();
+      if (!quizDoc.exists) {
+        throw new Error('Quiz not found');
+      }
+
+      const quiz = quizDoc.data();
+      const questions = quiz?.questions || [];
+
+      // Check if there are more questions
+      if (session.currentQuestionIndex >= questions.length - 1) {
+        throw new Error('No more questions');
+      }
+
+      const newIndex = session.currentQuestionIndex + 1;
+      const question = questions[newIndex];
+
+      // Update session with new question index
+      await firestore
+        .collection(GAME_SESSIONS_COLLECTION)
+        .doc(sessionId)
+        .update({
+          currentQuestionIndex: newIndex,
+        });
+
+      // Return question without correct answer for students
+      const { correctAnswer, ...questionWithoutAnswer } = question;
+
+      return {
+        question: questionWithoutAnswer,
+        questionIndex: newIndex,
+        totalQuestions: questions.length,
+      };
+    } catch (error) {
+      console.error('Error advancing to next question:', error);
+      throw error;
+    }
+  },
+
+  // Get current question
+  async getCurrentQuestion(sessionId: string): Promise<any> {
+    try {
+      const session = await this.getGameSession(sessionId);
+      if (!session) {
+        throw new Error('Session not found');
+      }
+
+      const quizDoc = await firestore.collection('quizzes').doc(session.quizId).get();
+      if (!quizDoc.exists) {
+        throw new Error('Quiz not found');
+      }
+
+      const quiz = quizDoc.data();
+      const questions = quiz?.questions || [];
+      const question = questions[session.currentQuestionIndex];
+
+      // Return question without correct answer
+      if (question) {
+        const { correctAnswer, ...questionWithoutAnswer } = question;
+        return {
+          ...questionWithoutAnswer,
+          questionIndex: session.currentQuestionIndex,
+          totalQuestions: questions.length,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error getting current question:', error);
+      throw error;
+    }
+  },
+
+  // Validate answer
+  async validateAnswer(
+    quizId: string,
+    questionId: string,
+    answer: string | number
+  ): Promise<{ isCorrect: boolean; correctAnswer: any }> {
+    try {
+      const quizDoc = await firestore.collection('quizzes').doc(quizId).get();
+      if (!quizDoc.exists) {
+        throw new Error('Quiz not found');
+      }
+
+      const quiz = quizDoc.data();
+      const question = quiz?.questions?.find((q: any) => q.questionId === questionId);
+
+      if (!question) {
+        throw new Error('Question not found');
+      }
+
+      const isCorrect = String(answer).toLowerCase() === String(question.correctAnswer).toLowerCase();
+
+      return {
+        isCorrect,
+        correctAnswer: question.correctAnswer,
+      };
+    } catch (error) {
+      console.error('Error validating answer:', error);
+      throw error;
+    }
+  },
+
+  // Calculate score with time bonus
+  calculateScore(
+    isCorrect: boolean,
+    timeSpent: number,
+    questionPoints: number,
+    timeLimit: number
+  ): number {
+    if (!isCorrect) {
+      return 0;
+    }
+
+    // Base points
+    let score = questionPoints;
+
+    // Time bonus: 25% extra for answering in first half of time limit
+    if (timeSpent < timeLimit / 2) {
+      const timeBonusPercentage = 0.25;
+      score += Math.floor(questionPoints * timeBonusPercentage);
+    }
+
+    return score;
+  },
+
   // Get teacher's active sessions
   async getTeacherActiveSessions(teacherId: string): Promise<GameSession[]> {
     try {

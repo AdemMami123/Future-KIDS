@@ -143,7 +143,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const idToken = await firebaseUser.getIdToken();
           
           // Send to backend to set cookie and get user profile
-          await sendTokenToBackend(idToken);
+          const response = await fetch(`${API_URL}/users/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({ idToken }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success && data.data.user) {
+            setUser(data.data.user);
+          } else {
+            console.error('Failed to get user profile:', data.message);
+            setError(data.message || 'Failed to authenticate');
+          }
         } catch (error: any) {
           console.error('Error in auth state change:', error);
           setError(error.message);
@@ -156,7 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [sendTokenToBackend]);
+  }, []); // Empty dependency array - only run once on mount
 
   // Sign up function
   const signUp = useCallback(async (data: SignUpData) => {

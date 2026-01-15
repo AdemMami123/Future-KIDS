@@ -38,16 +38,19 @@ export const verifyToken = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    console.log('🔐 Auth middleware - Path:', req.path, 'Method:', req.method);
     // Get token from cookie
     const token = req.cookies?.authToken;
 
     if (!token) {
+      console.log('❌ No auth token found in cookies');
       res.status(401).json({
         success: false,
         message: 'Authentication required. Please log in.',
       });
       return;
     }
+    console.log('✅ Auth token found');
 
     // Verify JWT token
     const decoded = jwt.verify(token, JWT_SECRET) as {
@@ -58,8 +61,11 @@ export const verifyToken = async (
 
     // Verify user still exists in Firebase Auth
     try {
-      await auth.getUser(decoded.userId);
+      console.log('🔍 Verifying user exists in Firebase Auth:', decoded.userId);
+      const userRecord = await auth.getUser(decoded.userId);
+      console.log('✅ User verified:', userRecord.email);
     } catch (error) {
+      console.log('❌ User verification failed:', error);
       res.status(401).json({
         success: false,
         message: 'Invalid authentication. User not found.',
@@ -74,6 +80,7 @@ export const verifyToken = async (
       role: decoded.role,
     };
 
+    console.log('✅ Auth successful for user:', decoded.userId, 'role:', decoded.role);
     next();
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {

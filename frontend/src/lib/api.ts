@@ -3,6 +3,9 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 // API Client configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
+console.log('🌐 API Base URL:', API_BASE_URL);
+console.log('🔑 Env variable:', process.env.NEXT_PUBLIC_API_URL);
+
 class ApiClient {
     private client: AxiosInstance;
 
@@ -15,6 +18,8 @@ class ApiClient {
             },
             withCredentials: true, // Send cookies with requests
         });
+        
+        console.log('✅ API Client initialized with baseURL:', API_BASE_URL);
 
         // Request interceptor (cookies are sent automatically)
         this.client.interceptors.request.use(

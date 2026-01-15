@@ -193,8 +193,46 @@ export const useGameSocket = () => {
   );
 
   const nextQuestion = useCallback(
-    (data: { sessionId: string; questionIndex: number }) => {
-      socket.emit('next-question', data);
+    (
+      data: { sessionId: string; teacherId: string },
+      callback: (response: {
+        success: boolean;
+        question?: any;
+        questionIndex?: number;
+        error?: string;
+      }) => void
+    ) => {
+      socket.emit('next-question', data, callback);
+    },
+    [socket]
+  );
+
+  const pauseGame = useCallback(
+    (
+      data: { sessionId: string; teacherId: string },
+      callback: (response: { success: boolean; error?: string }) => void
+    ) => {
+      socket.emit('pause-game', data, callback);
+    },
+    [socket]
+  );
+
+  const resumeGame = useCallback(
+    (
+      data: { sessionId: string; teacherId: string },
+      callback: (response: { success: boolean; error?: string }) => void
+    ) => {
+      socket.emit('resume-game', data, callback);
+    },
+    [socket]
+  );
+
+  const questionTimeout = useCallback(
+    (
+      data: { sessionId: string },
+      callback: (response: { success: boolean; error?: string }) => void
+    ) => {
+      socket.emit('question-timeout', data, callback);
     },
     [socket]
   );
@@ -238,6 +276,9 @@ export const useGameSocket = () => {
     kickParticipant,
     startGame,
     nextQuestion,
+    pauseGame,
+    resumeGame,
+    questionTimeout,
     submitAnswer,
     endGame,
   };
