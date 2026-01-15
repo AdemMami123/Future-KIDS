@@ -7,7 +7,7 @@ const router = Router();
 // Get full game results
 router.get(
   '/:sessionId/results',
-  // authenticate, // Temporarily disabled for debugging
+  authenticate,
   async (req: Request, res: Response) => {
     try {
       console.log(`📊 Fetching results for session: ${req.params.sessionId}`);
@@ -154,7 +154,7 @@ router.get(
 // Get user-specific results
 router.get(
   '/:sessionId/results/:userId',
-  // authenticate, // Temporarily disabled for debugging
+  authenticate,
   async (req: Request, res: Response) => {
     try {
       const { sessionId, userId } = req.params;
