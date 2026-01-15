@@ -175,14 +175,44 @@ export default function TeacherGamePlayPage() {
     };
   }, [socket]);
 
-  // Initial load
+  // Initial load - rejoin session to receive events
   useEffect(() => {
-    if (socket.isConnected && user?.userId) {
-      // Start the first question
-      handleNextQuestion();
-      setLoading(false);
+    if (socket.isConnected && user?.userId && sessionId) {
+      // Rejoin the session socket room
+      socket.rejoinSession?.(
+        { sessionId, userId: user.userId },
+        (response) => {
+          if (response.success) {
+            console.log('✅ Teacher rejoined game session');
+            // Set initial data from session
+            if (response.session?.participants) {
+              setParticipants(response.session.participants.map((p: any) => ({
+                ...p,
+                score: p.score || 0,
+                hasAnswered: false
+              })));
+            }
+            
+            // Also fetch current question
+            socket.getCurrentQuestion?.(
+              { sessionId },
+              (questionResponse) => {
+                if (questionResponse.success && questionResponse.question) {
+                  console.log('📝 Got current question:', questionResponse.question);
+                  setCurrentQuestion(questionResponse.question);
+                  setQuestionIndex(questionResponse.question.questionIndex || 0);
+                  setTotalQuestions(questionResponse.question.totalQuestions || 0);
+                }
+              }
+            );
+          } else {
+            console.error('Failed to rejoin session:', response.error);
+          }
+          setLoading(false);
+        }
+      );
     }
-  }, [socket.isConnected, user, handleNextQuestion]);
+  }, [socket.isConnected, user, sessionId]);
 
   if (loading) {
     return (

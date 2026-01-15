@@ -44,15 +44,21 @@ router.get(
       console.log('📋 Found', quizzesSnapshot.docs.length, 'quizzes');
       // Filter and sort in memory to avoid composite index requirement
       const quizzes = quizzesSnapshot.docs
-        .map((doc) => ({
+        .map((doc: any) => ({
           quizId: doc.id,
           ...doc.data(),
-        }))
+        }) as any)
         .filter((quiz: any) => quiz.isActive === true)
         .sort((a: any, b: any) => {
-          const aTime = a.createdAt?.toMillis() || 0;
-          const bTime = b.createdAt?.toMillis() || 0;
-          return bTime - aTime; // desc order
+          try {
+            // Handle both Firestore Timestamp and Date objects
+            const aTime = a.createdAt?.toMillis?.() || a.createdAt?.getTime?.() || 0;
+            const bTime = b.createdAt?.toMillis?.() || b.createdAt?.getTime?.() || 0;
+            return bTime - aTime; // desc order
+          } catch (error) {
+            console.warn('Error sorting quizzes by date:', error);
+            return 0;
+          }
         });
 
       // Get student's attempts to mark completed quizzes
@@ -124,9 +130,14 @@ router.get(
       // Sort by completedAt desc and apply limit
       filteredDocs = filteredDocs
         .sort((a, b) => {
-          const aTime = a.data().completedAt?.toMillis() || 0;
-          const bTime = b.data().completedAt?.toMillis() || 0;
-          return bTime - aTime;
+          try {
+            const aTime = a.data().completedAt?.toMillis?.() || a.data().completedAt?.getTime?.() || 0;
+            const bTime = b.data().completedAt?.toMillis?.() || b.data().completedAt?.getTime?.() || 0;
+            return bTime - aTime;
+          } catch (error) {
+            console.warn('Error sorting attempts by date:', error);
+            return 0;
+          }
         })
         .slice(0, Number(limit) || 50);
 
@@ -212,13 +223,18 @@ router.get(
       const filteredDocs = attemptsSnapshot.docs
         .filter(doc => {
           const data: any = doc.data();
-          const completedAt = data.completedAt?.toDate();
+          const completedAt = data.completedAt?.toDate?.() || (typeof data.completedAt === 'string' ? new Date(data.completedAt) : null);
           return completedAt && completedAt >= daysAgo;
         })
         .sort((a, b) => {
-          const aTime = a.data().completedAt?.toMillis() || 0;
-          const bTime = b.data().completedAt?.toMillis() || 0;
-          return aTime - bTime; // asc order for stats calculation
+          try {
+            const aTime = a.data().completedAt?.toMillis?.() || a.data().completedAt?.getTime?.() || 0;
+            const bTime = b.data().completedAt?.toMillis?.() || b.data().completedAt?.getTime?.() || 0;
+            return aTime - bTime; // asc order for stats calculation
+          } catch (error) {
+            console.warn('Error sorting stats attempts:', error);
+            return 0;
+          }
         });
 
       const attempts: any[] = filteredDocs.map((doc) => ({

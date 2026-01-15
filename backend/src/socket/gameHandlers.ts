@@ -149,6 +149,79 @@ export const setupGameHandlers = (io: Server) => {
       }
     );
 
+    // Rejoin session room (for when teacher or student refreshes/navigates back)
+    socket.on(
+      'rejoin-session',
+      async (
+        data: { sessionId: string; userId: string },
+        callback?: (response: { success: boolean; session?: any; error?: string }) => void
+      ) => {
+        try {
+          const session = await gameSessionService.getGameSession(data.sessionId);
+
+          if (!session) {
+            callback?.({
+              success: false,
+              error: 'Session not found',
+            });
+            return;
+          }
+
+          // Join the socket room
+          socket.join(data.sessionId);
+
+          // Store session ID in socket data
+          socket.data.sessionId = data.sessionId;
+          socket.data.userId = data.userId;
+
+          callback?.({
+            success: true,
+            session,
+          });
+
+          console.log(`🔄 User ${data.userId} rejoined session: ${data.sessionId}`);
+        } catch (error: any) {
+          console.error('Error rejoining session:', error);
+          callback?.({
+            success: false,
+            error: error.message || 'Failed to rejoin session',
+          });
+        }
+      }
+    );
+
+    // Get current question (for when student joins mid-game or after page refresh)
+    socket.on(
+      'get-current-question',
+      async (
+        data: { sessionId: string },
+        callback?: (response: { success: boolean; question?: any; error?: string }) => void
+      ) => {
+        try {
+          const question = await gameSessionService.getCurrentQuestion(data.sessionId);
+          
+          if (question) {
+            callback?.({
+              success: true,
+              question,
+            });
+            console.log(`📝 Sent current question to client for session: ${data.sessionId}`);
+          } else {
+            callback?.({
+              success: false,
+              error: 'No question available',
+            });
+          }
+        } catch (error: any) {
+          console.error('Error getting current question:', error);
+          callback?.({
+            success: false,
+            error: error.message || 'Failed to get current question',
+          });
+        }
+      }
+    );
+
     // Leave game session
     socket.on('leave-game', async (data: { sessionId: string; userId: string }) => {
       try {
@@ -237,10 +310,25 @@ export const setupGameHandlers = (io: Server) => {
 
           await gameSessionService.startGameSession(data.sessionId);
 
+          // Get the first question
+          const firstQuestion = await gameSessionService.getCurrentQuestion(data.sessionId);
+
           // Broadcast game start to all participants
           io.to(data.sessionId).emit('game-started', {
             sessionId: data.sessionId,
           });
+
+          // Immediately send the first question to all participants
+          if (firstQuestion) {
+            io.to(data.sessionId).emit('question-started', {
+              question: firstQuestion,
+              questionIndex: 0,
+              totalQuestions: firstQuestion.totalQuestions,
+              timePerQuestion: 30, // seconds
+              startTime: Date.now(), // Unix timestamp for synchronization
+            });
+            console.log(`📝 First question sent for game: ${data.sessionId}`);
+          }
 
           callback({
             success: true,
@@ -288,6 +376,7 @@ export const setupGameHandlers = (io: Server) => {
         data: {
           sessionId: string;
           userId: string;
+          userName?: string;
           questionId: string;
           answer: string | number;
           timeSpent: number;
@@ -300,11 +389,13 @@ export const setupGameHandlers = (io: Server) => {
         }) => void
       ) => {
         try {
+          console.log(`📝 Submit answer attempt - User: ${data.userId}, UserName: ${data.userName}, Session: ${data.sessionId}`);
           const session = await gameSessionService.getGameSession(
             data.sessionId
           );
 
           if (!session) {
+            console.error('❌ Session not found:', data.sessionId);
             callback({
               success: false,
               error: 'Session not found',
@@ -312,11 +403,21 @@ export const setupGameHandlers = (io: Server) => {
             return;
           }
 
-          // TODO: Import quiz service to get question details
-          // For now, we'll need to validate the answer
-          // This should integrate with your quiz service
-          const isCorrect = true; // Placeholder
-          const points = 100; // Placeholder
+          console.log(`📋 Session has ${session.participants.length} participants:`, session.participants.map(p => ({ userId: p.userId, name: p.userName })));
+
+          // Validate answer
+          const validation = await gameSessionService.validateAnswer(
+            session.quizId,
+            data.questionId,
+            data.answer
+          );
+
+          const isCorrect = validation.isCorrect;
+          // Calculate points based on speed (max 1000 points)
+          const speedBonus = Math.max(0, 1000 - (data.timeSpent * 10));
+          const points = isCorrect ? Math.max(100, speedBonus) : 0;
+
+          console.log(`✅ Answer validation - Correct: ${isCorrect}, Points: ${points}`);
 
           await gameSessionService.submitAnswer(
             data.sessionId,
@@ -325,7 +426,8 @@ export const setupGameHandlers = (io: Server) => {
             data.answer,
             isCorrect,
             data.timeSpent,
-            points
+            points,
+            data.userName // Pass userName for recovery if participant not found
           );
 
           callback({
@@ -391,6 +493,8 @@ export const setupGameHandlers = (io: Server) => {
             question: result.question,
             questionIndex: result.questionIndex,
             totalQuestions: result.totalQuestions,
+            timePerQuestion: 30, // seconds
+            startTime: Date.now(), // Unix timestamp for synchronization
           });
 
           callback({

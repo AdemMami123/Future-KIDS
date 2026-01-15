@@ -80,7 +80,7 @@ export const gameSessionService = {
         currentQuestionIndex: 0,
         participants: [],
         settings,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: admin.firestore.Timestamp.now(),
       };
 
       const sessionRef = await firestore
@@ -100,19 +100,30 @@ export const gameSessionService = {
   // Get game session by ID
   async getGameSession(sessionId: string): Promise<GameSession | null> {
     try {
-      const sessionDoc = await firestore
+      const sessionRef = firestore
         .collection(GAME_SESSIONS_COLLECTION)
-        .doc(sessionId)
-        .get();
+        .doc(sessionId);
+      
+      // Use transaction to ensure consistent read
+      const session = await firestore.runTransaction(async (transaction) => {
+        const sessionDoc = await transaction.get(sessionRef);
+        
+        if (!sessionDoc.exists) {
+          return null;
+        }
 
-      if (!sessionDoc.exists) {
-        return null;
+        const data = sessionDoc.data();
+        return {
+          sessionId: sessionDoc.id,
+          ...data,
+        } as GameSession;
+      });
+      
+      if (session) {
+        console.log(`📖 Fetched session ${sessionId}: status=${session.status}, participants=${session.participants?.length || 0}`);
       }
-
-      return {
-        sessionId: sessionDoc.id,
-        ...sessionDoc.data(),
-      } as GameSession;
+      
+      return session;
     } catch (error) {
       console.error('Error getting game session:', error);
       throw new Error('Failed to get game session');
@@ -152,13 +163,18 @@ export const gameSessionService = {
     avatarUrl?: string
   ): Promise<void> {
     try {
+      console.log(`➕ Adding participant ${userId} (${userName}) to session ${sessionId}`);
       const session = await this.getGameSession(sessionId);
 
       if (!session) {
+        console.error(`❌ Session ${sessionId} not found`);
         throw new Error('Game session not found');
       }
 
+      console.log(`📊 Session status: ${session.status}, Current participants: ${session.participants.length}`);
+
       if (session.status !== 'waiting') {
+        console.error(`❌ Game has already started (status: ${session.status})`);
         throw new Error('Game has already started');
       }
 
@@ -168,6 +184,7 @@ export const gameSessionService = {
       );
 
       if (existingParticipant) {
+        console.log(`⚠️ User ${userId} already in session`);
         return; // Already joined
       }
 
@@ -175,19 +192,22 @@ export const gameSessionService = {
         userId,
         userName,
         avatarUrl,
-        joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+        joinedAt: admin.firestore.Timestamp.now(),
         score: 0,
         answers: [],
       };
 
+      console.log(`✍️ Writing participant to Firestore...`);
       await firestore
         .collection(GAME_SESSIONS_COLLECTION)
         .doc(sessionId)
         .update({
           participants: admin.firestore.FieldValue.arrayUnion(participant),
         });
+      
+      console.log(`✅ Participant ${userName} added successfully`);
     } catch (error) {
-      console.error('Error adding participant:', error);
+      console.error('❌ Error adding participant:', error);
       throw error;
     }
   },
@@ -220,29 +240,47 @@ export const gameSessionService = {
   // Start game session
   async startGameSession(sessionId: string): Promise<void> {
     try {
+      console.log(`🚀 Starting game session: ${sessionId}`);
       const session = await this.getGameSession(sessionId);
 
       if (!session) {
+        console.error(`❌ Session ${sessionId} not found`);
         throw new Error('Game session not found');
       }
 
+      console.log(`📊 Session status: ${session.status}, Participants: ${session.participants.length}`);
+
       if (session.status !== 'waiting') {
+        console.error(`❌ Game already started (status: ${session.status})`);
         throw new Error('Game has already started or completed');
       }
 
       if (session.participants.length === 0) {
+        console.error(`❌ No participants in session`);
         throw new Error('Cannot start game with no participants');
       }
 
-      await firestore
+      console.log(`✍️ Updating session status to active...`);
+      const sessionRef = firestore
         .collection(GAME_SESSIONS_COLLECTION)
-        .doc(sessionId)
-        .update({
+        .doc(sessionId);
+      
+      // Use a transaction to ensure participants are not lost
+      await firestore.runTransaction(async (transaction) => {
+        const doc = await transaction.get(sessionRef);
+        if (!doc.exists) {
+          throw new Error('Session not found');
+        }
+        
+        transaction.update(sessionRef, {
           status: 'active',
-          startedAt: admin.firestore.FieldValue.serverTimestamp(),
+          startedAt: admin.firestore.Timestamp.now(),
         });
+      });
+      
+      console.log(`✅ Game session started successfully`);
     } catch (error) {
-      console.error('Error starting game session:', error);
+      console.error('❌ Error starting game session:', error);
       throw error;
     }
   },
@@ -273,55 +311,83 @@ export const gameSessionService = {
     answer: string | number,
     isCorrect: boolean,
     timeSpent: number,
-    points: number
+    points: number,
+    userName?: string // Optional userName for recovery
   ): Promise<void> {
     try {
-      const session = await this.getGameSession(sessionId);
-
-      if (!session) {
-        throw new Error('Game session not found');
-      }
-
-      const participantIndex = session.participants.findIndex(
-        (p) => p.userId === userId
-      );
-
-      if (participantIndex === -1) {
-        throw new Error('Participant not found');
-      }
-
-      const participant = session.participants[participantIndex];
-
-      // Check if already answered this question
-      const existingAnswer = participant.answers.find(
-        (a) => a.questionId === questionId
-      );
-
-      if (existingAnswer) {
-        return; // Already answered
-      }
-
-      // Add answer and update score
-      participant.answers.push({
-        questionId,
-        answer,
-        isCorrect,
-        timeSpent,
-        points,
-      });
-
-      if (isCorrect) {
-        participant.score += points;
-      }
-
-      session.participants[participantIndex] = participant;
-
-      await firestore
+      const sessionRef = firestore
         .collection(GAME_SESSIONS_COLLECTION)
-        .doc(sessionId)
-        .update({
-          participants: session.participants,
+        .doc(sessionId);
+
+      await firestore.runTransaction(async (transaction) => {
+        const sessionDoc = await transaction.get(sessionRef);
+        
+        if (!sessionDoc.exists) {
+          throw new Error('Game session not found');
+        }
+
+        const session = sessionDoc.data() as GameSession;
+        let participants = session.participants || [];
+        
+        console.log(`📋 Session has ${participants.length} participants: [${participants.map(p => p.userName).join(', ')}]`);
+
+        let participantIndex = participants.findIndex(
+          (p) => p.userId === userId
+        );
+
+        // If participant not found but game is active, create a recovery participant
+        if (participantIndex === -1) {
+          if (session.status === 'active') {
+            console.log(`⚠️ Participant ${userId} not found, creating recovery entry`);
+            const recoveryParticipant: Participant = {
+              userId,
+              userName: userName || 'Unknown Player',
+              joinedAt: admin.firestore.Timestamp.now(),
+              score: 0,
+              answers: [],
+            };
+            participants.push(recoveryParticipant);
+            participantIndex = participants.length - 1;
+          } else {
+            throw new Error('Participant not found');
+          }
+        }
+
+        const participant = participants[participantIndex];
+
+        // Check if already answered this question
+        const existingAnswer = participant.answers?.find(
+          (a) => a.questionId === questionId
+        );
+
+        if (existingAnswer) {
+          console.log(`⚠️ Question ${questionId} already answered by ${userId}`);
+          return; // Already answered
+        }
+
+        // Initialize answers array if it doesn't exist
+        if (!participant.answers) {
+          participant.answers = [];
+        }
+
+        // Add answer and update score
+        participant.answers.push({
+          questionId,
+          answer,
+          isCorrect,
+          timeSpent,
+          points,
         });
+
+        if (isCorrect) {
+          participant.score = (participant.score || 0) + points;
+        }
+
+        participants[participantIndex] = participant;
+
+        transaction.update(sessionRef, { participants });
+        console.log(`✅ Answer submitted successfully for ${userId}`);
+      });
     } catch (error) {
       console.error('Error submitting answer:', error);
       throw error;
@@ -336,7 +402,7 @@ export const gameSessionService = {
         .doc(sessionId)
         .update({
           status: 'completed',
-          completedAt: admin.firestore.FieldValue.serverTimestamp(),
+          completedAt: admin.firestore.Timestamp.now(),
         });
     } catch (error) {
       console.error('Error completing game session:', error);
@@ -397,15 +463,21 @@ export const gameSessionService = {
   // Get current question
   async getCurrentQuestion(sessionId: string): Promise<any> {
     try {
+      console.log(`📥 Getting current question for session: ${sessionId}`);
       const session = await this.getGameSession(sessionId);
       if (!session) {
         throw new Error('Session not found');
       }
+      console.log(`📊 Session before quiz load: participants=${session.participants?.length || 0}`);
 
       const quizDoc = await firestore.collection('quizzes').doc(session.quizId).get();
       if (!quizDoc.exists) {
         throw new Error('Quiz not found');
       }
+      
+      console.log(`📚 Quiz loaded, checking session again...`);
+      const sessionCheck = await this.getGameSession(sessionId);
+      console.log(`📊 Session after quiz load: participants=${sessionCheck?.participants?.length || 0}`);
 
       const quiz = quizDoc.data();
       const questions = quiz?.questions || [];
@@ -444,10 +516,38 @@ export const gameSessionService = {
       const question = quiz?.questions?.find((q: any) => q.questionId === questionId);
 
       if (!question) {
+        console.error(`❌ Question ${questionId} not found in quiz ${quizId}`);
+        console.log('📋 Available questions:', quiz?.questions?.map((q: any) => q.questionId));
         throw new Error('Question not found');
       }
 
-      const isCorrect = String(answer).toLowerCase() === String(question.correctAnswer).toLowerCase();
+      console.log(`🔍 Validating answer: user answered "${answer}" (type: ${typeof answer})`);
+      console.log(`🔍 Correct answer stored: "${question.correctAnswer}" (type: ${typeof question.correctAnswer})`);
+      console.log(`🔍 Question options:`, question.options);
+      
+      // Handle different answer formats
+      let isCorrect = false;
+      const userAnswerStr = String(answer).toLowerCase().trim();
+      const correctAnswerValue = question.correctAnswer;
+      
+      // If correctAnswer is an index (number), compare with the option at that index
+      if (typeof correctAnswerValue === 'number' && question.options) {
+        const correctOptionText = String(question.options[correctAnswerValue]).toLowerCase().trim();
+        isCorrect = userAnswerStr === correctOptionText;
+        console.log(`🔍 Index-based comparison: "${userAnswerStr}" === "${correctOptionText}" (index ${correctAnswerValue}) = ${isCorrect}`);
+      } 
+      // If correctAnswer is also an index stored as string
+      else if (!isNaN(Number(correctAnswerValue)) && question.options) {
+        const correctOptionText = String(question.options[Number(correctAnswerValue)]).toLowerCase().trim();
+        isCorrect = userAnswerStr === correctOptionText;
+        console.log(`🔍 String-index comparison: "${userAnswerStr}" === "${correctOptionText}" (index ${correctAnswerValue}) = ${isCorrect}`);
+      }
+      // Direct comparison (answer text matches stored answer)
+      else {
+        const correctAnswerStr = String(correctAnswerValue).toLowerCase().trim();
+        isCorrect = userAnswerStr === correctAnswerStr;
+        console.log(`🔍 Direct comparison: "${userAnswerStr}" === "${correctAnswerStr}" = ${isCorrect}`);
+      }
 
       return {
         isCorrect,

@@ -168,6 +168,20 @@ export const useGameSocket = () => {
     [socket]
   );
 
+  const rejoinSession = useCallback(
+    (
+      data: { sessionId: string; userId: string },
+      callback: (response: {
+        success: boolean;
+        session?: any;
+        error?: string;
+      }) => void
+    ) => {
+      socket.emit('rejoin-session', data, callback);
+    },
+    [socket]
+  );
+
   const leaveGame = useCallback(
     (data: { sessionId: string; userId: string }) => {
       socket.emit('leave-game', data);
@@ -242,6 +256,7 @@ export const useGameSocket = () => {
       data: {
         sessionId: string;
         userId: string;
+        userName?: string;
         questionId: string;
         answer: string | number;
         timeSpent: number;
@@ -268,10 +283,25 @@ export const useGameSocket = () => {
     [socket]
   );
 
+  const getCurrentQuestion = useCallback(
+    (
+      data: { sessionId: string },
+      callback: (response: { 
+        success: boolean; 
+        question?: any; 
+        error?: string 
+      }) => void
+    ) => {
+      socket.emit('get-current-question', data, callback);
+    },
+    [socket]
+  );
+
   return {
     ...socket,
     createGame,
     joinGame,
+    rejoinSession,
     leaveGame,
     kickParticipant,
     startGame,
@@ -281,5 +311,6 @@ export const useGameSocket = () => {
     questionTimeout,
     submitAnswer,
     endGame,
+    getCurrentQuestion,
   };
 };

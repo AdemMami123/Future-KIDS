@@ -73,6 +73,10 @@ export default function CreateGamePage() {
         setCreating(false);
 
         if (response.success && response.sessionId) {
+          // Store game code in localStorage for the lobby page
+          if (response.gameCode) {
+            localStorage.setItem(`gameCode_${response.sessionId}`, response.gameCode);
+          }
           router.push(`/teacher/games/${response.sessionId}/lobby`);
         } else {
           alert(response.error || 'Failed to create game');

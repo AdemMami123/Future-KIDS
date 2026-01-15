@@ -32,25 +32,61 @@ export default function StudentGamePlayPage() {
   } | null>(null);
   const [timePerQuestion, setTimePerQuestion] = useState(30);
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
+
+  // Rejoin session on mount and fetch current question
+  useEffect(() => {
+    if (socket.isConnected && user?.userId && sessionId) {
+      console.log('🔄 Rejoining game session and fetching current question...');
+      socket.rejoinSession?.(
+        { sessionId, userId: user.userId },
+        (response) => {
+          if (response.success) {
+            console.log('✅ Student rejoined game session');
+            // Request current question from server
+            socket.getCurrentQuestion?.(
+              { sessionId },
+              (questionResponse) => {
+                if (questionResponse.success && questionResponse.question) {
+                  console.log('📝 Got current question:', questionResponse.question);
+                  setCurrentQuestion(questionResponse.question);
+                  setQuestionIndex(questionResponse.question.questionIndex || 0);
+                  setTotalQuestions(questionResponse.question.totalQuestions || 0);
+                  setQuestionStartTime(Date.now());
+                } else {
+                  console.log('⏳ No question available yet, waiting for teacher...');
+                }
+              }
+            );
+          } else {
+            console.error('Failed to rejoin session:', response.error);
+          }
+        }
+      );
+    }
+  }, [socket.isConnected, user, sessionId]);
   const [waitingForNext, setWaitingForNext] = useState(false);
 
   // Submit answer
   const handleSubmitAnswer = useCallback(() => {
     if (!user?.userId || !currentQuestion || !selectedAnswer || hasSubmitted) {
+      console.log('❌ Cannot submit - missing data:', { hasUser: !!user?.userId, hasQuestion: !!currentQuestion, hasAnswer: !!selectedAnswer, hasSubmitted });
       return;
     }
 
     const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
+    console.log('📝 Submitting answer:', { sessionId, userId: user.userId, userName: user.name, questionId: currentQuestion.questionId, answer: selectedAnswer, timeSpent });
 
     socket.submitAnswer?.(
       {
         sessionId,
         userId: user.userId,
+        userName: user.name, // Include userName for recovery if participant not found
         questionId: currentQuestion.questionId,
         answer: selectedAnswer,
         timeSpent,
       },
       (response) => {
+        console.log('📨 Submit response:', response);
         if (response.success) {
           setHasSubmitted(true);
           setWaitingForNext(true);

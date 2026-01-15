@@ -67,7 +67,13 @@ export default function StudentResultsPage() {
         }
       } catch (err: any) {
         console.error('Error loading results:', err);
-        setError(err.response?.data?.message || 'Failed to load results');
+        console.error('Error details:', {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+          config: err.config
+        });
+        setError(err.response?.data?.message || err.message || 'Failed to load results');
       } finally {
         setLoading(false);
       }

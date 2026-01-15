@@ -53,7 +53,13 @@ function JoinGameContent() {
     };
 
     const handleGameStarted = () => {
+      // Don't redirect immediately - wait for first question
+      console.log('Game started, waiting for first question...');
+    };
+
+    const handleQuestionStarted = (data: any) => {
       if (sessionId) {
+        console.log('First question received, redirecting to play page...');
         router.push(`/student/games/${sessionId}/play`);
       }
     };
@@ -69,12 +75,14 @@ function JoinGameContent() {
     on('participant-joined', handleParticipantJoined);
     on('participant-left', handleParticipantLeft);
     on('game-started', handleGameStarted);
+    on('question-started', handleQuestionStarted);
     on('participant-kicked', handleParticipantKicked);
 
     return () => {
       off('participant-joined', handleParticipantJoined);
       off('participant-left', handleParticipantLeft);
       off('game-started', handleGameStarted);
+      off('question-started', handleQuestionStarted);
       off('participant-kicked', handleParticipantKicked);
     };
   }, [user, sessionId, on, off, router]);

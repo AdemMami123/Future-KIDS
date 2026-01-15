@@ -39,18 +39,58 @@ export default function GameLobbyPage() {
   const router = useRouter();
   const params = useParams();
   const { user } = useAuth();
-  const { on, off, startGame, kickParticipant, isConnected } = useGameSocket();
+  const { on, off, startGame, kickParticipant, rejoinSession, isConnected } = useGameSocket();
 
   const sessionId = params?.sessionId as string;
+  const [gameCode, setGameCode] = useState<string>('');
   const [session, setSession] = useState<GameSession | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [starting, setStarting] = useState(false);
 
+  // Rejoin session once on mount
   useEffect(() => {
-    // Fetch initial session data
-    fetchSessionData();
+    if (!user?.userId || !sessionId) return;
 
+    console.log('🔄 Attempting to rejoin session:', sessionId);
+    console.log('🔄 User ID:', user.userId);
+    console.log('🔄 rejoinSession function exists:', !!rejoinSession);
+    console.log('🔄 Socket connected:', isConnected);
+
+    // Small delay to ensure socket is connected
+    const timer = setTimeout(() => {
+      if (!rejoinSession) {
+        console.error('❌ rejoinSession function not available');
+        return;
+      }
+
+      // Rejoin the socket room when component mounts
+      rejoinSession(
+        { sessionId, userId: user.userId },
+        (response) => {
+          console.log('🔄 Rejoin response:', response);
+          if (response.success && response.session) {
+            setSession(response.session);
+            setParticipants(response.session.participants || []);
+          } else {
+            console.error('Failed to rejoin session:', response.error);
+          }
+        }
+      );
+    }, 500);
+
+    // Retrieve game code from localStorage if it exists
+    const storedGameCode = localStorage.getItem(`gameCode_${sessionId}`);
+    if (storedGameCode) {
+      setGameCode(storedGameCode);
+    }
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+
+  // Setup socket event listeners
+  useEffect(() => {
     // Listen for participant events
     const handleParticipantJoined = (data: { participant: Participant; participantCount: number }) => {
       setParticipants((prev) => [...prev, data.participant]);
@@ -74,15 +114,6 @@ export default function GameLobbyPage() {
       off('game-started', handleGameStarted);
     };
   }, [sessionId, on, off, router]);
-
-  const fetchSessionData = async () => {
-    try {
-      // TODO: Add API endpoint to fetch session data
-      // For now, we'll rely on Socket.io events
-    } catch (error) {
-      console.error('Error fetching session data:', error);
-    }
-  };
 
   const handleStartGame = () => {
     if (participants.length === 0) {
@@ -128,14 +159,14 @@ export default function GameLobbyPage() {
   };
 
   const copyGameCode = () => {
-    if (session?.gameCode) {
-      navigator.clipboard.writeText(session.gameCode);
+    if (gameCode) {
+      navigator.clipboard.writeText(gameCode);
       alert('Game code copied to clipboard!');
     }
   };
 
   const shareLink = () => {
-    const link = `${window.location.origin}/student/join?code=${session?.gameCode}`;
+    const link = `${window.location.origin}/student/join?code=${gameCode}`;
     navigator.clipboard.writeText(link);
     alert('Join link copied to clipboard!');
   };
@@ -153,7 +184,7 @@ export default function GameLobbyPage() {
           <div className="bg-white rounded-2xl shadow-2xl p-8 inline-block">
             <p className="text-gray-600 mb-2">Game Code</p>
             <div className="text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 tracking-wider mb-4">
-              {session?.gameCode || '------'}
+              {gameCode || '------'}
             </div>
             <div className="flex items-center justify-center space-x-3">
               <button

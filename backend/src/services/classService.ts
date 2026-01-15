@@ -89,9 +89,14 @@ export const getTeacherClasses = async (
     })) as Class[];
 
     return classes.sort((a, b) => {
-      const timeA = a.createdAt?.toMillis() || 0;
-      const timeB = b.createdAt?.toMillis() || 0;
-      return timeB - timeA; // desc order
+      try {
+        const timeA = (a.createdAt as any)?.toMillis?.() || (a.createdAt as any)?.getTime?.() || 0;
+        const timeB = (b.createdAt as any)?.toMillis?.() || (b.createdAt as any)?.getTime?.() || 0;
+        return timeB - timeA; // desc order
+      } catch (error) {
+        console.warn('Error sorting classes by date:', error);
+        return 0;
+      }
     });
   } catch (error: any) {
     throw new Error(`Failed to get teacher classes: ${error.message}`);

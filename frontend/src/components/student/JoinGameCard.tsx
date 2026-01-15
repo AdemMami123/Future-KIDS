@@ -22,17 +22,8 @@ export default function JoinGameCard() {
     setError('');
 
     try {
-      const result = await studentApi.joinGame(
-        gameCode.trim(),
-        user.userId,
-        `${user.firstName} ${user.lastName}`
-      );
-
-      if (result.success) {
-        router.push(`/student/games/${result.sessionId}/play`);
-      } else {
-        setError(result.message || 'Failed to join game');
-      }
+      // Redirect to join page with the game code - let Socket.io handle the actual joining
+      router.push(`/student/join?code=${gameCode.trim()}`);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Game not found');
     } finally {

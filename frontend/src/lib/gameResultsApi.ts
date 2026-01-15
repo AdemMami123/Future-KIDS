@@ -82,8 +82,8 @@ export interface UserResults {
 export const gameResultsApi = {
   // Get full game results
   getGameResults: async (sessionId: string): Promise<GameResults> => {
-    const response = await api.get(`/games/${sessionId}/results`);
-    return response.data.results;
+    const response: any = await api.get(`/games/${sessionId}/results`);
+    return response.results;
   },
 
   // Get user-specific results
@@ -91,8 +91,8 @@ export const gameResultsApi = {
     sessionId: string,
     userId: string
   ): Promise<UserResults> => {
-    const response = await api.get(`/games/${sessionId}/results/${userId}`);
-    return response.data.results;
+    const response: any = await api.get(`/games/${sessionId}/results/${userId}`);
+    return response.results;
   },
 
   // Export results as CSV

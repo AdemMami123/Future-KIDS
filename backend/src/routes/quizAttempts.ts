@@ -233,7 +233,8 @@ router.get(
           startedAt: attemptData.startedAt,
           completedAt: attemptData.completedAt,
           timeSpent: attemptData.completedAt && attemptData.startedAt
-            ? (attemptData.completedAt.toMillis() - attemptData.startedAt.toMillis()) / 1000
+            ? ((attemptData.completedAt?.toMillis?.() || attemptData.completedAt?.getTime?.() || 0) - 
+               (attemptData.startedAt?.toMillis?.() || attemptData.startedAt?.getTime?.() || 0)) / 1000
             : 0,
           quiz: quizData,
         },
