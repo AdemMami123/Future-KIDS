@@ -22,6 +22,17 @@ import './config/firebase'; // Initialize Firebase Admin SDK
 // Load environment variables
 dotenv.config();
 
+// Configuration
+const PORT = process.env.PORT || 5000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// Configure allowed origins for CORS - MUST be defined before Socket.IO initialization
+const allowedOrigins = process.env.FRONTEND_URL 
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : ['http://localhost:3000'];
+
+console.log('🌐 Allowed CORS origins:', allowedOrigins);
+
 // Initialize Express app
 const app: Application = express();
 const httpServer = createServer(app);
@@ -47,17 +58,6 @@ const io = new SocketIOServer(httpServer, {
   transports: ['polling', 'websocket'],
   allowEIO3: true,
 });
-
-// Configuration
-const PORT = process.env.PORT || 5000;
-const NODE_ENV = process.env.NODE_ENV || 'development';
-
-// Configure allowed origins for CORS
-const allowedOrigins = process.env.FRONTEND_URL 
-  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
-  : ['http://localhost:3000'];
-
-console.log('🌐 Allowed CORS origins:', allowedOrigins);
 
 // Middleware
 app.use(
