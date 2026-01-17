@@ -66,7 +66,8 @@
   h4,
   h5,
   h6 {
-    @apply font-heading font-bold;
+    @apply font-bold;
+    font-family: 'Outfit', 'Inter', sans-serif;
   }
 
   h1 {
