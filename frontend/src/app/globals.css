@@ -135,27 +135,27 @@
   }
 
   .btn-primary {
-    @apply bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700 shadow-md hover:shadow-lg;
+    @apply bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700 shadow-md hover:shadow-lg;
   }
 
   .btn-secondary {
-    @apply bg-secondary-500 text-white hover:bg-secondary-600 active:bg-secondary-700 shadow-md hover:shadow-lg;
+    @apply bg-purple-500 text-white hover:bg-purple-600 active:bg-purple-700 shadow-md hover:shadow-lg;
   }
 
   .btn-success {
-    @apply bg-success-500 text-white hover:bg-success-600 active:bg-success-700 shadow-md hover:shadow-lg;
+    @apply bg-green-500 text-white hover:bg-green-600 active:bg-green-700 shadow-md hover:shadow-lg;
   }
 
   .btn-error {
-    @apply bg-error-500 text-white hover:bg-error-600 active:bg-error-700 shadow-md hover:shadow-lg;
+    @apply bg-red-500 text-white hover:bg-red-600 active:bg-red-700 shadow-md hover:shadow-lg;
   }
 
   .btn-outline {
-    @apply border-2 border-primary-500 text-primary-600 hover:bg-primary-50 active:bg-primary-100;
+    @apply border-2 border-blue-500 text-blue-600 hover:bg-blue-50 active:bg-blue-100;
   }
 
   .btn-ghost {
-    @apply text-primary-600 hover:bg-primary-50 active:bg-primary-100;
+    @apply text-blue-600 hover:bg-blue-50 active:bg-blue-100;
   }
 
   .btn-sm {
@@ -193,7 +193,7 @@
   }
 
   .input-error {
-    @apply border-error-500 focus:border-error-500 focus:ring-error-500;
+    @apply border-red-500 focus:border-red-500 focus:ring-red-500;
   }
 
   /* Labels */
@@ -207,27 +207,27 @@
   }
 
   .badge-primary {
-    @apply bg-primary-100 text-primary-800;
+    @apply bg-blue-100 text-blue-800;
   }
 
   .badge-secondary {
-    @apply bg-secondary-100 text-secondary-800;
+    @apply bg-purple-100 text-purple-800;
   }
 
   .badge-success {
-    @apply bg-success-100 text-success-800;
+    @apply bg-green-100 text-green-800;
   }
 
   .badge-warning {
-    @apply bg-warning-100 text-warning-800;
+    @apply bg-amber-100 text-amber-800;
   }
 
   .badge-error {
-    @apply bg-error-100 text-error-800;
+    @apply bg-red-100 text-red-800;
   }
 
   .badge-info {
-    @apply bg-info-100 text-info-800;
+    @apply bg-cyan-100 text-cyan-800;
   }
 
   /* Container */
@@ -242,7 +242,7 @@
 
   /* Gradient Text */
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500;
   }
 
   /* Glass Effect */
@@ -266,19 +266,19 @@
   }
 
   .alert-info {
-    @apply bg-info-50 border-info-200 text-info-800;
+    @apply bg-cyan-50 border-cyan-200 text-cyan-800;
   }
 
   .alert-success {
-    @apply bg-success-50 border-success-200 text-success-800;
+    @apply bg-green-50 border-green-200 text-green-800;
   }
 
   .alert-warning {
-    @apply bg-warning-50 border-warning-200 text-warning-800;
+    @apply bg-amber-50 border-amber-200 text-amber-800;
   }
 
   .alert-error {
-    @apply bg-error-50 border-error-200 text-error-800;
+    @apply bg-red-50 border-red-200 text-red-800;
   }
 }
 
