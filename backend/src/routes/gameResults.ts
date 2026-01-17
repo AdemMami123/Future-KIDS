@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { firestore } from '../config/firebase';
+import { gameSessionService } from '../services/gameSessionService';
 
 const router = Router();
 
