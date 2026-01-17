@@ -45,8 +45,8 @@ router.post(
       // Set HTTP-only cookie
       res.cookie('authToken', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        secure: true, // Required for sameSite: 'none'
+        sameSite: 'none', // Allow cross-origin cookies (Vercel <-> Render)
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
@@ -114,8 +114,8 @@ router.post(
       // Set HTTP-only cookie
       res.cookie('authToken', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        secure: true, // Required for sameSite: 'none'
+        sameSite: 'none', // Allow cross-origin cookies (Vercel <-> Render)
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
