@@ -369,4 +369,87 @@ router.post(
   }
 );
 
+// Create a new game session
+router.post(
+  '/',
+  authenticate,
+  async (req: Request, res: Response) => {
+    try {
+      const { quizId, classId, settings } = req.body;
+      const teacherId = req.user?.userId;
+
+      if (!teacherId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+        });
+      }
+
+      if (!quizId || !classId) {
+        return res.status(400).json({
+          success: false,
+          message: 'quizId and classId are required',
+        });
+      }
+
+      const gameSettings = {
+        showAnswers: settings?.showAnswers || false,
+        showLeaderboard: settings?.showLeaderboard || true,
+        timePerQuestion: settings?.timePerQuestion,
+      };
+
+      const { sessionId, gameCode } = await gameSessionService.createGameSession(
+        quizId,
+        teacherId,
+        classId,
+        gameSettings
+      );
+
+      return res.status(201).json({
+        success: true,
+        sessionId,
+        gameCode,
+      });
+    } catch (error: any) {
+      console.error('Error creating game session:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create game session',
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Get game session by ID
+router.get(
+  '/:sessionId',
+  async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+
+      const session = await gameSessionService.getGameSession(sessionId);
+
+      if (!session) {
+        return res.status(404).json({
+          success: false,
+          message: 'Game session not found',
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: session,
+      });
+    } catch (error: any) {
+      console.error('Error getting game session:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to get game session',
+        error: error.message,
+      });
+    }
+  }
+);
+
 export default router;
