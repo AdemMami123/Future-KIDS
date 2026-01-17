@@ -74,13 +74,14 @@ export default function StudentGamePlayPage() {
     }
 
     const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
-    console.log('📝 Submitting answer:', { sessionId, userId: user.userId, userName: user.name, questionId: currentQuestion.questionId, answer: selectedAnswer, timeSpent });
+    const userName = `${user.firstName} ${user.lastName}`;
+    console.log('📝 Submitting answer:', { sessionId, userId: user.userId, userName, questionId: currentQuestion.questionId, answer: selectedAnswer, timeSpent });
 
     socket.submitAnswer?.(
       {
         sessionId,
         userId: user.userId,
-        userName: user.name, // Include userName for recovery if participant not found
+        userName, // Include userName for recovery if participant not found
         questionId: currentQuestion.questionId,
         answer: selectedAnswer,
         timeSpent,
