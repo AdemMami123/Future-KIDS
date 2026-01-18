@@ -170,6 +170,7 @@ router.get('/children', authenticate(['parent']), async (req, res): Promise<void
 
     res.json({
       success: true,
+      message: 'Children retrieved successfully',
       data: children,
     });
   } catch (error: any) {
@@ -193,6 +194,7 @@ router.get('/parents', authenticate(['student']), async (req, res): Promise<void
 
     res.json({
       success: true,
+      message: 'Parents retrieved successfully',
       data: parents,
     });
   } catch (error: any) {

@@ -351,12 +351,16 @@ export const getChildParents = async (childId: string): Promise<any[]> => {
       throw new Error('Invalid student user');
     }
 
+    console.log(`Getting parents for child: ${childId}`);
+
     // Get approved links
     const linksSnapshot = await firestore
       .collection('parentChildLinks')
       .where('childId', '==', childId)
       .where('status', '==', 'approved')
       .get();
+
+    console.log(`Found ${linksSnapshot.docs.length} approved parent links for child ${childId}`);
 
     // Get parent details
     const parents = await Promise.all(

@@ -26,11 +26,14 @@ export default function SettingsPage() {
     try {
       setLoading(true);
       setError('');
+      console.log('Loading parents data...');
       const parentsData = await getParents();
+      console.log('Parents data received:', parentsData);
       setParents(parentsData || []);
     } catch (error: any) {
       console.error('Failed to load data:', error);
-      setError(error.response?.data?.message || 'Failed to load data');
+      console.error('Error response:', error.response);
+      setError(error.response?.data?.message || error.message || 'Failed to load data');
       setParents([]);
     } finally {
       setLoading(false);

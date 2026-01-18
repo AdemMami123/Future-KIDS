@@ -98,7 +98,9 @@ export const getChildren = async (): Promise<ChildInfo[]> => {
  */
 export const getParents = async (): Promise<ParentInfo[]> => {
   const response = await api.get('/parent-child/parents');
-  return response.data.data;
+  console.log('getParents response:', response);
+  console.log('response.data:', response.data);
+  return response.data;
 };
 
 /**
