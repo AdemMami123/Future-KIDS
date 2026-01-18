@@ -47,60 +47,53 @@ export default function GameLobbyPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [starting, setStarting] = useState(false);
+  const [rejoined, setRejoined] = useState(false);
 
-  // Rejoin session once on mount
+  // Rejoin session once when component mounts
   useEffect(() => {
-    if (!user?.userId || !sessionId) return;
+    if (!user?.userId || !sessionId || !isConnected || rejoined) return;
 
-    console.log('🔄 Attempting to rejoin session:', sessionId);
-    console.log('🔄 User ID:', user.userId);
-    console.log('🔄 rejoinSession function exists:', !!rejoinSession);
-    console.log('🔄 Socket connected:', isConnected);
+    console.log('🔄 [Teacher] Rejoining session:', sessionId);
 
-    // Small delay to ensure socket is connected
-    const timer = setTimeout(() => {
-      if (!rejoinSession) {
-        console.error('❌ rejoinSession function not available');
-        return;
-      }
-
-      // Rejoin the socket room when component mounts
-      rejoinSession(
-        { sessionId, userId: user.userId },
-        (response) => {
-          console.log('🔄 Rejoin response:', response);
-          if (response.success && response.session) {
-            setSession(response.session);
-            setParticipants(response.session.participants || []);
-          } else {
-            console.error('Failed to rejoin session:', response.error);
-          }
+    rejoinSession(
+      { sessionId, userId: user.userId },
+      (response) => {
+        console.log('✅ [Teacher] Session data received with', response.session?.participants?.length || 0, 'participants');
+        if (response.success && response.session) {
+          setSession(response.session);
+          setParticipants(response.session.participants || []);
+          setGameCode(response.session.gameCode);
+          localStorage.setItem(`gameCode_${sessionId}`, response.session.gameCode);
+          setRejoined(true);
         }
-      );
-    }, 500);
-
-    // Retrieve game code from localStorage if it exists
-    const storedGameCode = localStorage.getItem(`gameCode_${sessionId}`);
-    if (storedGameCode) {
-      setGameCode(storedGameCode);
-    }
-
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+      }
+    );
+  }, [isConnected, sessionId, user?.userId, rejoined, rejoinSession]);
 
   // Setup socket event listeners
   useEffect(() => {
     // Listen for participant events
     const handleParticipantJoined = (data: { participant: Participant; participantCount: number }) => {
-      setParticipants((prev) => [...prev, data.participant]);
+      console.log('👤 Participant joined event received:', data);
+      setParticipants((prev) => {
+        // Check if participant already exists
+        const exists = prev.some((p) => p.userId === data.participant.userId);
+        if (exists) {
+          console.log('⚠️ Participant already in list, skipping:', data.participant.userId);
+          return prev;
+        }
+        console.log('✅ Adding new participant:', data.participant.userId);
+        return [...prev, data.participant];
+      });
     };
 
     const handleParticipantLeft = (data: { userId: string; participantCount: number }) => {
+      console.log('👋 Participant left event received:', data);
       setParticipants((prev) => prev.filter((p) => p.userId !== data.userId));
     };
 
     const handleGameStarted = () => {
+      console.log('🎮 Game started event received');
       router.push(`/teacher/games/${sessionId}/play`);
     };
 

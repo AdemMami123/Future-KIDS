@@ -87,18 +87,18 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-100 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-100 py-4 sm:py-6 md:py-8 px-3 sm:px-4 md:px-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         >
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">
             Welcome back, {user?.firstName}! 👋
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             Here&apos;s what&apos;s happening with your classes today
           </p>
         </motion.div>
@@ -108,9 +108,9 @@ export default function TeacherDashboard() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-red-50 border border-red-200 rounded-xl p-4 mb-8"
+            className="bg-red-50 border border-red-200 rounded-xl p-3 sm:p-4 mb-6 sm:mb-8"
           >
-            <p className="text-red-800">{error}</p>
+            <p className="text-red-800 text-sm sm:text-base">{error}</p>
           </motion.div>
         )}
 
@@ -121,7 +121,7 @@ export default function TeacherDashboard() {
         <QuickActions />
 
         {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
           {/* Recent Activity */}
           <RecentActivity />
 

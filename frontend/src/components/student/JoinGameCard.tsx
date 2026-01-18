@@ -35,19 +35,19 @@ export default function JoinGameCard() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-3xl shadow-2xl p-8 text-white"
+      className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 md:p-8 text-white"
     >
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-          <Gamepad2 className="w-8 h-8" />
+      <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+        <div className="p-2 sm:p-3 bg-white/20 rounded-lg sm:rounded-xl backdrop-blur-sm">
+          <Gamepad2 className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
         </div>
         <div>
-          <h2 className="text-3xl font-bold">Join Live Game</h2>
-          <p className="text-purple-100">Enter a game code to play</p>
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">Join Live Game</h2>
+          <p className="text-purple-100 text-xs sm:text-sm md:text-base">Enter a game code to play</p>
         </div>
       </div>
 
-      <form onSubmit={handleJoinGame} className="space-y-4">
+      <form onSubmit={handleJoinGame} className="space-y-3 sm:space-y-4">
         <div>
           <input
             type="text"
@@ -58,7 +58,7 @@ export default function JoinGameCard() {
             }}
             placeholder="Enter 6-digit code"
             maxLength={6}
-            className="w-full px-6 py-4 bg-white/90 text-gray-900 rounded-xl text-center text-3xl font-bold tracking-widest placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-white/50 transition-all"
+            className="w-full px-4 sm:px-5 md:px-6 py-3 sm:py-3.5 md:py-4 bg-white/90 text-gray-900 rounded-lg sm:rounded-xl text-center text-xl sm:text-2xl md:text-3xl font-bold tracking-widest placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-white/50 transition-all"
           />
           {error && (
             <motion.p

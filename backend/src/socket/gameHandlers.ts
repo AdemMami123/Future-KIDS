@@ -137,7 +137,7 @@ export const setupGameHandlers = (io: Server) => {
           });
 
           console.log(
-            `👤 User ${user.firstName} joined game: ${session.sessionId}`
+            `👤 User ${user.firstName} joined game: ${session.sessionId} (Total: ${updatedSession?.participants.length})`
           );
         } catch (error: any) {
           console.error('Error joining game:', error);
@@ -179,7 +179,7 @@ export const setupGameHandlers = (io: Server) => {
             session,
           });
 
-          console.log(`🔄 User ${data.userId} rejoined session: ${data.sessionId}`);
+          console.log(`🔄 User ${data.userId} rejoined session: ${data.sessionId} (${session.participants.length} participants)`);
         } catch (error: any) {
           console.error('Error rejoining session:', error);
           callback?.({

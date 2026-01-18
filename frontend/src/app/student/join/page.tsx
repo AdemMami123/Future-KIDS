@@ -31,6 +31,15 @@ function JoinGameContent() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [isInLobby, setIsInLobby] = useState(false);
+  
+  // Use ref to track sessionId for event handlers to avoid closure issues
+  const sessionIdRef = React.useRef<string | null>(null);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+    console.log('📍 [Student] sessionIdRef updated to:', sessionId);
+  }, [sessionId]);
 
   useEffect(() => {
     if (!user) {
@@ -40,8 +49,8 @@ function JoinGameContent() {
 
     // Listen for lobby events
     const handleParticipantJoined = (data: { participant: Participant; participantCount: number }) => {
+      console.log('👤 [Student] Participant joined:', data.participant.userName);
       setParticipants((prev) => {
-        // Avoid duplicates
         const exists = prev.some((p) => p.userId === data.participant.userId);
         if (exists) return prev;
         return [...prev, data.participant];
@@ -52,15 +61,15 @@ function JoinGameContent() {
       setParticipants((prev) => prev.filter((p) => p.userId !== data.userId));
     };
 
-    const handleGameStarted = () => {
-      // Don't redirect immediately - wait for first question
-      console.log('Game started, waiting for first question...');
+    const handleGameStarted = (data: any) => {
+      console.log('🎮 [Student] Game started');
     };
 
     const handleQuestionStarted = (data: any) => {
-      if (sessionId) {
-        console.log('First question received, redirecting to play page...');
-        router.push(`/student/games/${sessionId}/play`);
+      const currentSessionId = sessionIdRef.current;
+      if (currentSessionId) {
+        console.log('🚀 [Student] Redirecting to play page');
+        router.push(`/student/games/${currentSessionId}/play`);
       }
     };
 
@@ -85,7 +94,7 @@ function JoinGameContent() {
       off('question-started', handleQuestionStarted);
       off('participant-kicked', handleParticipantKicked);
     };
-  }, [user, sessionId, on, off, router]);
+  }, [user, on, off, router]);
 
   const handleJoinGame = () => {
     if (!gameCode || gameCode.length !== 6) {
@@ -107,10 +116,13 @@ function JoinGameContent() {
         setJoining(false);
 
         if (response.success && response.session) {
+          console.log('✅ [Student] Joined session with', response.session.participants?.length || 0, 'participants');
           setSessionId(response.session.sessionId);
+          sessionIdRef.current = response.session.sessionId;
           setParticipants(response.session.participants || []);
           setIsInLobby(true);
         } else {
+          console.error('❌ [Student] Failed to join:', response.error);
           setError(response.error || 'Failed to join game');
         }
       }

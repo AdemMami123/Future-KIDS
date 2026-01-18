@@ -107,18 +107,18 @@ function ParentDashboardContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-3 sm:p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Parent Dashboard</h1>
-          <p className="text-gray-600">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">Parent Dashboard</h1>
+          <p className="text-sm sm:text-base text-gray-600">
             Monitor your child's learning progress and performance
           </p>
         </div>
 
         {/* Child Selector */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <ChildSelector
             children={children}
             selectedChildId={selectedChildId}
@@ -134,28 +134,28 @@ function ParentDashboardContent() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-6"
+                className="mb-4 sm:mb-6"
               >
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <div className="bg-white rounded-xl shadow-sm p-4 sm:p-5 md:p-6">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                     Performance Alerts
                   </h3>
                   <div className="space-y-3">
                     {alerts.slice(0, 3).map((alert, index) => (
                       <div
                         key={index}
-                        className={`border rounded-lg p-4 flex items-start ${getSeverityColor(
+                        className={`border rounded-lg p-4 sm:p-5 md:p-6 flex flex-col sm:flex-row items-start ${getSeverityColor(
                           alert.severity
                         )}`}
                       >
-                        <div className="mr-3">{getSeverityIcon(alert.severity)}</div>
+                        <div className="mr-0 sm:mr-3 mb-2 sm:mb-0">{getSeverityIcon(alert.severity)}</div>
                         <div className="flex-1">
                           <p className="font-medium">{alert.message}</p>
                           {alert.quizTitle && (
                             <p className="text-sm mt-1 opacity-75">{alert.quizTitle}</p>
                           )}
                         </div>
-                        <span className="text-xs opacity-75">
+                        <span className="text-xs opacity-75 mt-2 sm:mt-0">
                           {new Date(alert.date).toLocaleDateString()}
                         </span>
                       </div>
@@ -166,12 +166,12 @@ function ParentDashboardContent() {
             )}
 
             {/* Stats Overview */}
-            <div className="mb-6">
+            <div className="mb-4 sm:mb-6">
               <StatsOverview stats={childStats} loading={statsLoading} />
             </div>
 
             {/* Charts Grid */}
-            <div className="grid lg:grid-cols-2 gap-6 mb-6">
+            <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
               <PerformanceTrend
                 data={childStats.performanceTrend}
                 loading={statsLoading}
@@ -183,7 +183,7 @@ function ParentDashboardContent() {
             </div>
 
             {/* Activity Calendar */}
-            <div className="mb-6">
+            <div className="mb-4 sm:mb-6">
               <ActivityCalendar attempts={recentAttempts} loading={statsLoading} />
             </div>
 
@@ -192,10 +192,10 @@ function ParentDashboardContent() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="bg-white rounded-xl shadow-sm p-6"
+              className="bg-white rounded-xl shadow-sm p-4 sm:p-5 md:p-6"
             >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                   Recent Quiz Results
                 </h3>
                 <button
@@ -263,10 +263,10 @@ function ParentDashboardContent() {
             </motion.div>
 
             {/* Quick Actions */}
-            <div className="mt-6 grid md:grid-cols-3 gap-4">
+            <div className="mt-4 sm:mt-6 grid md:grid-cols-3 gap-4 sm:gap-6">
               <button
                 onClick={() => router.push(`/parent/children/${selectedChildId}`)}
-                className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow text-left"
+                className="bg-white rounded-xl shadow-sm p-4 sm:p-5 md:p-6 hover:shadow-md transition-shadow text-left"
               >
                 <h4 className="font-semibold text-gray-900 mb-2">Detailed View</h4>
                 <p className="text-sm text-gray-600">
@@ -275,7 +275,7 @@ function ParentDashboardContent() {
               </button>
               <button
                 onClick={() => router.push('/parent/reports')}
-                className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow text-left"
+                className="bg-white rounded-xl shadow-sm p-4 sm:p-5 md:p-6 hover:shadow-md transition-shadow text-left"
               >
                 <h4 className="font-semibold text-gray-900 mb-2">
                   Generate Report
@@ -286,7 +286,7 @@ function ParentDashboardContent() {
               </button>
               <button
                 onClick={() => router.push('/parent/children')}
-                className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow text-left"
+                className="bg-white rounded-xl shadow-sm p-4 sm:p-5 md:p-6 hover:shadow-md transition-shadow text-left"
               >
                 <h4 className="font-semibold text-gray-900 mb-2">Manage Children</h4>
                 <p className="text-sm text-gray-600">Link and manage child accounts</p>
