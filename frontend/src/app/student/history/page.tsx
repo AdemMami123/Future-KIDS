@@ -58,14 +58,16 @@ function StudentHistoryContent() {
     const now = new Date();
     if (dateFilter === 'week') {
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      filtered = filtered.filter(
-        (a) => new Date(a.completedAt.toDate()) >= weekAgo
-      );
+      filtered = filtered.filter((a) => {
+        const completedDate = a.completedAt?.toDate ? a.completedAt.toDate() : new Date(a.completedAt);
+        return completedDate >= weekAgo;
+      });
     } else if (dateFilter === 'month') {
       const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      filtered = filtered.filter(
-        (a) => new Date(a.completedAt.toDate()) >= monthAgo
-      );
+      filtered = filtered.filter((a) => {
+        const completedDate = a.completedAt?.toDate ? a.completedAt.toDate() : new Date(a.completedAt);
+        return completedDate >= monthAgo;
+      });
     }
 
     setFilteredAttempts(filtered);
@@ -78,7 +80,7 @@ function StudentHistoryContent() {
 
   // Prepare data for chart
   const chartData = filteredAttempts.map((a) => ({
-    date: a.completedAt.toDate(),
+    date: a.completedAt?.toDate ? a.completedAt.toDate() : new Date(a.completedAt),
     score: a.score,
     percentage: a.percentage,
   }));
@@ -255,7 +257,7 @@ function StudentHistoryContent() {
                       {/* Date */}
                       <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
                         <Calendar className="w-4 h-4" />
-                        {new Date(attempt.completedAt.toDate()).toLocaleDateString('en-US', {
+                        {new Date(attempt.completedAt?.toDate ? attempt.completedAt.toDate() : attempt.completedAt).toLocaleDateString('en-US', {
                           weekday: 'long',
                           year: 'numeric',
                           month: 'long',

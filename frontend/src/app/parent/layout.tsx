@@ -1,16 +1,16 @@
 import React from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import TeacherSidebar from '@/components/layout/TeacherSidebar';
+import ParentSidebar from '@/components/layout/ParentSidebar';
 
-export default function TeacherLayout({
+export default function ParentLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <ProtectedRoute allowedRoles={['teacher']}>
+    <ProtectedRoute allowedRoles={['parent']}>
       <div className="flex min-h-screen bg-gray-50">
-        <TeacherSidebar />
+        <ParentSidebar />
         <main className="flex-1 lg:ml-0 overflow-auto">
           {children}
         </main>
