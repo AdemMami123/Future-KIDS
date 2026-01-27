@@ -10,18 +10,36 @@ import {
   Target,
   Award,
   ArrowLeft,
-  RefreshCw,
 } from 'lucide-react';
 import QuestionReview from '@/components/game/QuestionReview';
 import ShareResults from '@/components/game/ShareResults';
 import { gameResultsApi, UserResults, ParticipantResult } from '@/lib/gameResultsApi';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Cached results from socket
-interface CachedResults {
+// Complete results from socket (matches backend structure)
+interface CompleteResults {
   sessionId: string;
   leaderboard: ParticipantResult[];
   totalParticipants: number;
+  quiz?: {
+    title: string;
+    totalQuestions: number;
+  };
+  statistics?: {
+    averageScore: number;
+    averageAccuracy: number;
+    completionRate: number;
+    totalParticipants: number;
+  };
+  questionStats?: Array<{
+    questionId: string;
+    questionNumber: number;
+    questionText: string;
+    correctCount: number;
+    incorrectCount: number;
+    percentageCorrect: number;
+    averageTime: number;
+  }>;
 }
 
 export default function StudentResultsPage() {
@@ -31,65 +49,78 @@ export default function StudentResultsPage() {
   const sessionId = params.sessionId as string;
 
   const [results, setResults] = useState<UserResults | null>(null);
-  const [cachedResults, setCachedResults] = useState<CachedResults | null>(null);
+  const [cachedResults, setCachedResults] = useState<CompleteResults | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [retrying, setRetrying] = useState(false);
 
-  // Load cached results immediately
-  useEffect(() => {
-    const cached = sessionStorage.getItem(`game-results-${sessionId}`);
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        setCachedResults(parsed);
-        // Celebrate immediately with cached data
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
-      } catch (e) {
-        console.error('Failed to parse cached results:', e);
-      }
-    }
-  }, [sessionId]);
-
-  // Load full results from API
+  // Load results - prioritize cache, only call API as fallback
   useEffect(() => {
     const loadResults = async () => {
       if (!user) return;
 
+      // Check for complete cached results first
+      const cached = sessionStorage.getItem(`game-results-${sessionId}`);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached) as CompleteResults;
+          setCachedResults(parsed);
+          setLoading(false);
+          
+          // Find user's result from leaderboard
+          const userResult = parsed.leaderboard?.find(p => p.userId === user.userId);
+          const accuracy = userResult ? 
+            (userResult.correctAnswers / (userResult.totalAnswers || 1)) * 100 : 0;
+          
+          // Celebrate based on performance
+          if (accuracy >= 80) {
+            confetti({
+              particleCount: 150,
+              spread: 100,
+              origin: { y: 0.6 },
+            });
+            setTimeout(() => {
+              confetti({
+                particleCount: 100,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 },
+              });
+              confetti({
+                particleCount: 100,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 },
+              });
+            }, 250);
+          } else {
+            confetti({
+              particleCount: 100,
+              spread: 70,
+              origin: { y: 0.6 },
+            });
+          }
+          
+          // Don't call API if we have complete cached results
+          return;
+        } catch (e) {
+          console.error('Failed to parse cached results:', e);
+        }
+      }
+
+      // Fallback to API if no cache
       try {
         const data = await gameResultsApi.getUserResults(sessionId, user.userId);
         setResults(data);
         setError('');
 
-        // Clear cached results
-        sessionStorage.removeItem(`game-results-${sessionId}`);
-
-        // Celebrate based on performance (only if not already from cache)
-        if (!cachedResults && data.performance.accuracy >= 80) {
+        // Celebrate based on performance
+        if (data.performance.accuracy >= 80) {
           confetti({
             particleCount: 150,
             spread: 100,
             origin: { y: 0.6 },
           });
-          setTimeout(() => {
-            confetti({
-              particleCount: 100,
-              angle: 60,
-              spread: 55,
-              origin: { x: 0 },
-            });
-            confetti({
-              particleCount: 100,
-              angle: 120,
-              spread: 55,
-              origin: { x: 1 },
-            });
-          }, 250);
-        } else if (!cachedResults && data.performance.accuracy >= 60) {
+        } else if (data.performance.accuracy >= 60) {
           confetti({
             particleCount: 100,
             spread: 70,
@@ -98,32 +129,14 @@ export default function StudentResultsPage() {
         }
       } catch (err: any) {
         console.error('Error loading results:', err);
-        if (!cachedResults) {
-          setError(err.response?.data?.message || err.message || 'Failed to load results');
-        }
+        setError(err.response?.data?.message || err.message || 'Failed to load results');
       } finally {
         setLoading(false);
       }
     };
 
     loadResults();
-  }, [sessionId, user, cachedResults]);
-
-  const handleRetry = async () => {
-    if (!user) return;
-    setRetrying(true);
-    try {
-      const data = await gameResultsApi.getUserResults(sessionId, user.userId);
-      setResults(data);
-      setError('');
-      sessionStorage.removeItem(`game-results-${sessionId}`);
-    } catch (err: any) {
-      console.error('Error retrying:', err);
-      setError(err.response?.data?.message || 'Failed to load detailed results');
-    } finally {
-      setRetrying(false);
-    }
-  };
+  }, [sessionId, user]);
 
   // Find current user in cached leaderboard
   const cachedUserResult = cachedResults?.leaderboard?.find(
@@ -212,41 +225,19 @@ export default function StudentResultsPage() {
   }
 
   // Use data from API or cached results
-  const hasFullResults = !!results;
   const score = results?.participant?.score ?? cachedUserResult?.score ?? 0;
   const rank = results?.participant?.rank ?? cachedUserResult?.rank ?? 0;
-  const totalParticipants = results?.participant?.totalParticipants ?? cachedResults?.totalParticipants ?? 0;
+  const totalParticipants = results?.participant?.totalParticipants ?? cachedResults?.totalParticipants ?? cachedResults?.statistics?.totalParticipants ?? 0;
   const correctAnswers = results?.performance?.correctAnswers ?? cachedUserResult?.correctAnswers ?? 0;
-  const totalQuestions = results?.performance?.totalQuestions ?? cachedUserResult?.totalAnswers ?? 0;
+  const totalQuestions = results?.performance?.totalQuestions ?? cachedUserResult?.totalAnswers ?? cachedResults?.quiz?.totalQuestions ?? 0;
   const accuracy = results?.performance?.accuracy ?? (totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0);
+  const quizTitle = results?.quiz?.title ?? cachedResults?.quiz?.title ?? 'Quiz Results';
 
   const motivational = getMotivationalMessage(accuracy);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        {/* Loading Full Results Banner */}
-        {!hasFullResults && cachedUserResult && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 flex items-center justify-between"
-          >
-            <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
-              <span className="text-yellow-700">Loading detailed results...</span>
-            </div>
-            <button
-              onClick={handleRetry}
-              disabled={retrying}
-              className="flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${retrying ? 'animate-spin' : ''}`} />
-              Retry
-            </button>
-          </motion.div>
-        )}
-
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -264,7 +255,7 @@ export default function StudentResultsPage() {
           <h1 className="text-4xl font-bold text-gray-800 mb-2">
             Your Results
           </h1>
-          <p className="text-gray-600">{results?.quiz?.title || 'Quiz Results'}</p>
+          <p className="text-gray-600">{quizTitle}</p>
         </motion.div>
 
         {/* Motivational Message */}
@@ -322,8 +313,8 @@ export default function StudentResultsPage() {
           </div>
         </motion.div>
 
-        {/* Performance Comparison - Only show with full results */}
-        {hasFullResults && results?.performance?.classAverage !== undefined && (
+        {/* Performance Comparison - Only show with full results from API */}
+        {results?.performance?.classAverage !== undefined && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -421,8 +412,8 @@ export default function StudentResultsPage() {
           />
         </motion.div>
 
-        {/* Question Review - Only show with full results */}
-        {hasFullResults && results?.answerReview && (
+        {/* Question Review - Only show with full results from API */}
+        {results?.answerReview && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
