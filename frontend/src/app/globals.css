@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -42,6 +42,26 @@
 }
 
 /* ===========================
+   RTL SUPPORT
+   =========================== */
+html[dir='rtl'] body {
+  font-family: var(--font-cairo), 'Cairo', 'Inter', sans-serif;
+}
+
+html[dir='ltr'] body {
+  font-family: var(--font-inter), 'Inter', sans-serif;
+}
+
+/* RTL specific adjustments */
+html[dir='rtl'] .flex-row {
+  flex-direction: row-reverse;
+}
+
+html[dir='rtl'] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+/* ===========================
    BASE STYLES
    =========================== */
 @layer base {
@@ -54,7 +74,7 @@
   }
 
   body {
-    @apply bg-neutral-50 text-neutral-900 font-sans antialiased;
+    @apply bg-neutral-50 text-neutral-900 antialiased;
     font-feature-settings: "cv11", "ss01";
     font-variation-settings: "opsz" auto;
   }
@@ -67,7 +87,24 @@
   h5,
   h6 {
     @apply font-bold;
+  }
+  
+  html[dir='ltr'] h1,
+  html[dir='ltr'] h2,
+  html[dir='ltr'] h3,
+  html[dir='ltr'] h4,
+  html[dir='ltr'] h5,
+  html[dir='ltr'] h6 {
     font-family: 'Outfit', 'Inter', sans-serif;
+  }
+  
+  html[dir='rtl'] h1,
+  html[dir='rtl'] h2,
+  html[dir='rtl'] h3,
+  html[dir='rtl'] h4,
+  html[dir='rtl'] h5,
+  html[dir='rtl'] h6 {
+    font-family: 'Cairo', sans-serif;
   }
 
   h1 {

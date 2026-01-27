@@ -276,7 +276,7 @@ export const useGameSocket = () => {
   const endGame = useCallback(
     (
       data: { sessionId: string; teacherId: string },
-      callback: (response: { success: boolean; error?: string }) => void
+      callback: (response: { success: boolean; results?: any; error?: string }) => void
     ) => {
       socket.emit('end-game', data, callback);
     },

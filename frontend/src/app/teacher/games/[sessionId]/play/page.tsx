@@ -85,7 +85,14 @@ export default function TeacherGamePlayPage() {
 
     if (confirm('Are you sure you want to end the game?')) {
       socket.endGame?.({ sessionId, teacherId: user.userId }, (response) => {
-        if (response.success) {
+        if (response.success && response.results) {
+          // Store results in sessionStorage for immediate access
+          sessionStorage.setItem(
+            `game-results-${sessionId}`,
+            JSON.stringify(response.results)
+          );
+          router.push(`/teacher/games/${sessionId}/results`);
+        } else if (response.success) {
           router.push(`/teacher/games/${sessionId}/results`);
         }
       });

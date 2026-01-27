@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -12,6 +13,7 @@ interface LoginFormProps {
 
 export default function LoginForm({ onSuccess }: LoginFormProps) {
   const { signIn, loading, error, clearError } = useAuth();
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -34,7 +36,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
     // Validation
     if (!formData.email || !formData.password) {
-      setFormError('Please fill in all fields');
+      setFormError(t('forms.required'));
       return;
     }
 
@@ -42,7 +44,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       await signIn(formData.email, formData.password);
       onSuccess?.();
     } catch (error: any) {
-      setFormError(error.message || 'Failed to sign in');
+      setFormError(error.message || t('auth.invalidCredentials'));
     }
   };
 
@@ -69,7 +71,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         {/* Email Field */}
         <div className="space-y-2">
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email Address
+            {t('auth.email')}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -82,7 +84,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
               value={formData.email}
               onChange={handleChange}
               className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="you@example.com"
+              placeholder={t('auth.emailPlaceholder')}
               disabled={loading}
             />
           </div>
@@ -91,7 +93,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         {/* Password Field */}
         <div className="space-y-2">
           <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-            Password
+            {t('auth.password')}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -104,7 +106,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
               value={formData.password}
               onChange={handleChange}
               className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="••••••••"
+              placeholder={t('auth.passwordPlaceholder')}
               disabled={loading}
             />
             <button
@@ -127,7 +129,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
             href="/auth/forgot-password"
             className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors"
           >
-            Forgot password?
+            {t('auth.forgotPassword')}
           </Link>
         </div>
 
@@ -142,22 +144,22 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           {loading ? (
             <div className="flex items-center justify-center gap-2">
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              <span>Signing in...</span>
+              <span>{t('common.loading')}</span>
             </div>
           ) : (
-            'Sign In'
+            t('auth.login')
           )}
         </motion.button>
 
         {/* Sign Up Link */}
         <div className="text-center">
           <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
+            {t('auth.noAccount')}{' '}
             <Link
               href="/auth/signup"
               className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
             >
-              Sign up
+              {t('auth.signup')}
             </Link>
           </p>
         </div>

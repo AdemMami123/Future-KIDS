@@ -1,162 +1,216 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import Image from 'next/image';
-import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  ChevronDown, 
+  ChevronUp,
+  Image as ImageIcon
+} from 'lucide-react';
 
-interface QuestionReviewItem {
+export interface AnswerReviewItem {
   questionNumber: number;
+  questionId: string;
   questionText: string;
   questionImageUrl?: string;
   type: string;
-  options: string[];
-  correctAnswer: string;
-  userAnswer: string | null;
+  options?: string[];
+  correctAnswer: string | number;
+  userAnswer: string | number | null;
   isCorrect: boolean;
   points: number;
   timeSpent: number;
 }
 
 interface QuestionReviewProps {
-  questions: QuestionReviewItem[];
-  showUserAnswers?: boolean;
+  answers: AnswerReviewItem[];
+  showCorrectAnswers?: boolean;
 }
 
-export default function QuestionReview({
-  questions,
-  showUserAnswers = true,
-}: QuestionReviewProps) {
+export default function QuestionReview({ answers, showCorrectAnswers = true }: QuestionReviewProps) {
+  const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
+
+  const toggleExpand = (questionId: string) => {
+    setExpandedQuestion(expandedQuestion === questionId ? null : questionId);
+  };
+
+  const getOptionLabel = (index: number) => {
+    return String.fromCharCode(65 + index); // A, B, C, D...
+  };
+
   return (
-    <div className="space-y-6">
-      {questions.map((question, index) => (
+    <div className="space-y-3">
+      {answers.map((answer, index) => (
         <motion.div
-          key={question.questionNumber}
-          initial={{ opacity: 0, y: 20 }}
+          key={answer.questionId}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
-          className={`bg-white rounded-xl shadow-md p-6 border-2 ${
-            showUserAnswers
-              ? question.isCorrect
-                ? 'border-green-200'
-                : question.userAnswer
-                ? 'border-red-200'
-                : 'border-gray-200'
-              : 'border-gray-200'
+          transition={{ delay: index * 0.05 }}
+          className={`bg-white rounded-xl border-2 overflow-hidden ${
+            answer.isCorrect ? 'border-green-200' : 'border-red-200'
           }`}
         >
-          {/* Header */}
-          <div className="flex items-start justify-between mb-4">
+          {/* Question Header */}
+          <button
+            onClick={() => toggleExpand(answer.questionId)}
+            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-100 text-purple-600 font-bold">
-                {question.questionNumber}
-              </div>
-              <div>
-                <div className="font-semibold text-gray-800">
-                  Question {question.questionNumber}
-                </div>
-                <div className="text-sm text-gray-500 capitalize">
-                  {question.type}
-                </div>
+              {answer.isCorrect ? (
+                <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0" />
+              ) : (
+                <XCircle className="w-6 h-6 text-red-500 flex-shrink-0" />
+              )}
+              <div className="text-left">
+                <span className="font-semibold text-gray-800">
+                  Question {answer.questionNumber}
+                </span>
+                <p className="text-sm text-gray-600 line-clamp-1">
+                  {answer.questionText}
+                </p>
               </div>
             </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <span className={`font-bold ${answer.isCorrect ? 'text-green-600' : 'text-red-500'}`}>
+                  +{answer.points} pts
+                </span>
+                <div className="flex items-center gap-1 text-sm text-gray-500">
+                  <Clock className="w-3 h-3" />
+                  {answer.timeSpent}s
+                </div>
+              </div>
+              {expandedQuestion === answer.questionId ? (
+                <ChevronUp className="w-5 h-5 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-400" />
+              )}
+            </div>
+          </button>
 
-            {showUserAnswers && (
-              <div className="flex items-center gap-4">
-                {question.userAnswer && (
-                  <>
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <Clock className="w-4 h-4" />
-                      {question.timeSpent}s
+          {/* Expanded Details */}
+          <AnimatePresence>
+            {expandedQuestion === answer.questionId && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="border-t bg-gray-50"
+              >
+                <div className="p-4 space-y-4">
+                  {/* Question Image */}
+                  {answer.questionImageUrl && (
+                    <div className="relative rounded-lg overflow-hidden bg-gray-100">
+                      <img
+                        src={answer.questionImageUrl}
+                        alt="Question"
+                        className="w-full max-h-48 object-contain"
+                      />
                     </div>
-                    <div className="flex items-center gap-1">
-                      {question.isCorrect ? (
-                        <>
-                          <CheckCircle className="w-5 h-5 text-green-500" />
-                          <span className="text-green-600 font-semibold">
-                            +{question.points}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="w-5 h-5 text-red-500" />
-                          <span className="text-red-600 font-semibold">0</span>
-                        </>
+                  )}
+
+                  {/* Full Question Text */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">Question</h4>
+                    <p className="text-gray-800">{answer.questionText}</p>
+                  </div>
+
+                  {/* Options for Multiple Choice */}
+                  {answer.type === 'multiple-choice' && answer.options && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-gray-500">Options</h4>
+                      {answer.options.map((option, optIndex) => {
+                        const isCorrectOption = option === answer.correctAnswer || optIndex === answer.correctAnswer;
+                        const isUserChoice = option === answer.userAnswer || optIndex === answer.userAnswer;
+
+                        return (
+                          <div
+                            key={optIndex}
+                            className={`flex items-center gap-3 p-3 rounded-lg border-2 ${
+                              isCorrectOption
+                                ? 'border-green-500 bg-green-50'
+                                : isUserChoice && !isCorrectOption
+                                ? 'border-red-500 bg-red-50'
+                                : 'border-gray-200 bg-white'
+                            }`}
+                          >
+                            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold ${
+                              isCorrectOption
+                                ? 'bg-green-500 text-white'
+                                : isUserChoice
+                                ? 'bg-red-500 text-white'
+                                : 'bg-gray-200 text-gray-600'
+                            }`}>
+                              {getOptionLabel(optIndex)}
+                            </span>
+                            <span className="flex-1">{option}</span>
+                            {isCorrectOption && (
+                              <CheckCircle className="w-5 h-5 text-green-500" />
+                            )}
+                            {isUserChoice && !isCorrectOption && (
+                              <XCircle className="w-5 h-5 text-red-500" />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* True/False Answer */}
+                  {answer.type === 'true-false' && showCorrectAnswers && (
+                    <div className="grid grid-cols-2 gap-3">
+                      {['True', 'False'].map((option) => {
+                        const isCorrectOption = option.toLowerCase() === String(answer.correctAnswer).toLowerCase();
+                        const isUserChoice = option.toLowerCase() === String(answer.userAnswer).toLowerCase();
+
+                        return (
+                          <div
+                            key={option}
+                            className={`p-3 rounded-lg border-2 text-center font-medium ${
+                              isCorrectOption
+                                ? 'border-green-500 bg-green-50 text-green-700'
+                                : isUserChoice
+                                ? 'border-red-500 bg-red-50 text-red-700'
+                                : 'border-gray-200 bg-white text-gray-600'
+                            }`}
+                          >
+                            {option}
+                            {isCorrectOption && ' ✓'}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Short Answer */}
+                  {answer.type === 'short-answer' && (
+                    <div className="space-y-2">
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500">Your Answer</h4>
+                        <p className={`p-2 rounded border ${
+                          answer.isCorrect ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'
+                        }`}>
+                          {answer.userAnswer || 'No answer provided'}
+                        </p>
+                      </div>
+                      {showCorrectAnswers && (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-500">Correct Answer</h4>
+                          <p className="p-2 rounded border border-green-300 bg-green-50">
+                            {answer.correctAnswer}
+                          </p>
+                        </div>
                       )}
                     </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Question */}
-          <div className="mb-4">
-            <p className="text-lg text-gray-800 mb-3">{question.questionText}</p>
-            {question.questionImageUrl && (
-              <div className="relative w-full h-48 rounded-lg overflow-hidden mb-4">
-                <Image
-                  src={question.questionImageUrl}
-                  alt="Question"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Options */}
-          <div className="space-y-2">
-            {question.options.map((option, optionIndex) => {
-              const optionLabel = String.fromCharCode(65 + optionIndex); // A, B, C, D
-              const isCorrectAnswer = option === question.correctAnswer;
-              const isUserAnswer = showUserAnswers && option === question.userAnswer;
-
-              let bgColor = 'bg-gray-50 border-gray-200';
-              let textColor = 'text-gray-700';
-              let icon = null;
-
-              if (isCorrectAnswer) {
-                bgColor = 'bg-green-50 border-green-300';
-                textColor = 'text-green-800';
-                icon = <CheckCircle className="w-5 h-5 text-green-500" />;
-              } else if (isUserAnswer && !question.isCorrect) {
-                bgColor = 'bg-red-50 border-red-300';
-                textColor = 'text-red-800';
-                icon = <XCircle className="w-5 h-5 text-red-500" />;
-              }
-
-              return (
-                <div
-                  key={optionIndex}
-                  className={`flex items-center gap-3 p-4 rounded-lg border-2 ${bgColor}`}
-                >
-                  <div
-                    className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold ${
-                      isCorrectAnswer
-                        ? 'bg-green-500 text-white'
-                        : isUserAnswer && !question.isCorrect
-                        ? 'bg-red-500 text-white'
-                        : 'bg-white text-gray-600 border-2 border-gray-300'
-                    }`}
-                  >
-                    {optionLabel}
-                  </div>
-                  <span className={`flex-1 ${textColor}`}>{option}</span>
-                  {icon}
+                  )}
                 </div>
-              );
-            })}
-          </div>
-
-          {/* Explanation for unanswered questions */}
-          {showUserAnswers && !question.userAnswer && (
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-sm text-gray-600">
-                No answer submitted for this question
-              </p>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       ))}
     </div>

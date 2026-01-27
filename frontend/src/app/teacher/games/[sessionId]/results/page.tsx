@@ -11,6 +11,7 @@ import {
   Clock,
   Download,
   ArrowLeft,
+  RefreshCw,
 } from 'lucide-react';
 import ResultsPodium from '@/components/game/ResultsPodium';
 import PerformanceChart from '@/components/game/PerformanceChart';
@@ -26,29 +27,87 @@ export default function TeacherResultsPage() {
   const [results, setResults] = useState<GameResults | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [retrying, setRetrying] = useState(false);
+  const [usedCache, setUsedCache] = useState(false);
 
+  // Load results - first try cache, then API
   useEffect(() => {
-    const loadResults = async () => {
-      try {
-        const data = await gameResultsApi.getGameResults(sessionId);
-        setResults(data);
+    let mounted = true;
 
-        // Celebrate with confetti
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
+    const loadResults = async () => {
+      // First check sessionStorage for cached complete results
+      const cached = sessionStorage.getItem(`game-results-${sessionId}`);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          // Check if we have complete results (with quiz and statistics)
+          if (parsed.quiz && parsed.statistics && parsed.leaderboard) {
+            console.log('✅ Using complete cached results from socket');
+            if (mounted) {
+              setResults(parsed as GameResults);
+              setLoading(false);
+              setUsedCache(true);
+              // Clear from storage after loading
+              sessionStorage.removeItem(`game-results-${sessionId}`);
+              // Celebrate
+              confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+              });
+            }
+            return; // Don't call API if we have complete cached results
+          }
+        } catch (e) {
+          console.error('Failed to parse cached results:', e);
+        }
+      }
+
+      // No cache or incomplete cache - try API
+      try {
+        console.log('📡 Fetching results from API...');
+        const data = await gameResultsApi.getGameResults(sessionId);
+        if (mounted) {
+          setResults(data);
+          setError('');
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+          });
+        }
       } catch (err: any) {
         console.error('Error loading results:', err);
-        setError(err.response?.data?.message || 'Failed to load results');
+        if (mounted) {
+          setError(err.response?.data?.message || err.message || 'Failed to load results');
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     loadResults();
+
+    return () => {
+      mounted = false;
+    };
   }, [sessionId]);
+
+  const handleRetry = async () => {
+    setRetrying(true);
+    try {
+      const data = await gameResultsApi.getGameResults(sessionId);
+      setResults(data);
+      setError('');
+    } catch (err: any) {
+      console.error('Error retrying:', err);
+      setError(err.response?.data?.message || 'Failed to load detailed results');
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   const handleDownloadCSV = async () => {
     try {
@@ -71,6 +130,7 @@ export default function TeacherResultsPage() {
     }
   };
 
+  // Show loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
@@ -82,23 +142,34 @@ export default function TeacherResultsPage() {
     );
   }
 
-  if (error || !results) {
+  // Show error if no results
+  if (!results) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error || 'Results not found'}</p>
-          <button
-            onClick={() => router.push('/teacher/dashboard')}
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          >
-            Back to Dashboard
-          </button>
+          <div className="flex gap-4 justify-center">
+            <button
+              onClick={handleRetry}
+              disabled={retrying}
+              className="flex items-center gap-2 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${retrying ? 'animate-spin' : ''}`} />
+              Try Again
+            </button>
+            <button
+              onClick={() => router.push('/teacher/dashboard')}
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            >
+              Back to Dashboard
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  const questionReviewData = results.questionStats.map((stat) => ({
+  const questionReviewData = results.questionStats?.map((stat) => ({
     questionNumber: stat.questionNumber,
     questionText: stat.questionText,
     questionImageUrl: undefined,
@@ -109,7 +180,7 @@ export default function TeacherResultsPage() {
     isCorrect: false,
     points: 0,
     timeSpent: stat.averageTime,
-  }));
+  })) || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 py-8">
@@ -133,9 +204,9 @@ export default function TeacherResultsPage() {
               <h1 className="text-4xl font-bold text-gray-800 mb-2">
                 🎉 Game Results
               </h1>
-              <p className="text-gray-600">{results.quiz.title}</p>
+              <p className="text-gray-600">{results.quiz?.title || 'Quiz Results'}</p>
               <p className="text-sm text-gray-500">
-                Code: {results.session.gameCode}
+                {results.session?.gameCode ? `Code: ${results.session.gameCode}` : `Session: ${sessionId.slice(0, 8)}...`}
               </p>
             </div>
             <button
@@ -162,7 +233,7 @@ export default function TeacherResultsPage() {
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-800">
-                  {results.statistics.totalParticipants}
+                  {results.statistics?.totalParticipants || 0}
                 </div>
                 <div className="text-sm text-gray-500">Participants</div>
               </div>
@@ -181,7 +252,7 @@ export default function TeacherResultsPage() {
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-800">
-                  {results.statistics.overallAccuracy.toFixed(1)}%
+                  {results.statistics?.overallAccuracy?.toFixed(1) || '0'}%
                 </div>
                 <div className="text-sm text-gray-500">Accuracy</div>
               </div>
@@ -200,7 +271,7 @@ export default function TeacherResultsPage() {
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-800">
-                  {results.statistics.averageScore}
+                  {results?.statistics?.averageScore ?? '--'}
                 </div>
                 <div className="text-sm text-gray-500">Avg Score</div>
               </div>
@@ -219,7 +290,7 @@ export default function TeacherResultsPage() {
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-800">
-                  {results.quiz.totalQuestions}
+                  {results?.quiz?.totalQuestions ?? '--'}
                 </div>
                 <div className="text-sm text-gray-500">Questions</div>
               </div>
@@ -237,33 +308,35 @@ export default function TeacherResultsPage() {
           <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
             🏆 Top Performers
           </h2>
-          <ResultsPodium participants={results.leaderboard} />
+          <ResultsPodium participants={results.leaderboard || []} />
         </motion.div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            <PerformanceChart
-              questionStats={results.questionStats}
-              type="bar"
-            />
-          </motion.div>
+        {results.questionStats && results.questionStats.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              <PerformanceChart
+                questionStats={results.questionStats}
+                type="bar"
+              />
+            </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.7 }}
-          >
-            <PerformanceChart
-              questionStats={results.questionStats}
-              type="accuracy"
-            />
-          </motion.div>
-        </div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.7 }}
+            >
+              <PerformanceChart
+                questionStats={results.questionStats}
+                type="accuracy"
+              />
+            </motion.div>
+          </div>
+        )}
 
         {/* Full Leaderboard */}
         <motion.div
@@ -297,7 +370,7 @@ export default function TeacherResultsPage() {
                 </tr>
               </thead>
               <tbody>
-                {results.leaderboard.map((participant) => (
+                {(results.leaderboard || []).map((participant) => (
                   <tr
                     key={participant.userId}
                     className="border-b border-gray-100 hover:bg-gray-50"
@@ -352,16 +425,17 @@ export default function TeacherResultsPage() {
         </motion.div>
 
         {/* Question Breakdown */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9 }}
-        >
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Question Breakdown
-          </h2>
-          <div className="space-y-4">
-            {results.questionStats.map((stat) => (
+        {results.questionStats && results.questionStats.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9 }}
+          >
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+              Question Breakdown
+            </h2>
+            <div className="space-y-4">
+              {results.questionStats.map((stat) => (
               <div
                 key={stat.questionId}
                 className="bg-white rounded-xl shadow-md p-6"
@@ -410,8 +484,9 @@ export default function TeacherResultsPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </motion.div>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );

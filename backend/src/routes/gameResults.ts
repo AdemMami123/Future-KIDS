@@ -1,7 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { firestore } from '../config/firebase';
-import { gameSessionService } from '../services/gameSessionService';
 
 const router = Router();
 
@@ -126,7 +125,7 @@ router.get(
         },
         statistics: {
           totalParticipants,
-          participationRate: 100, // All who joined participated
+          participationRate: 100,
           averageScore: Math.round(averageScore),
           totalCorrectAnswers,
           totalAnswers,
@@ -176,7 +175,7 @@ router.get(
       const session: any = { sessionId: sessionDoc.id, ...sessionDoc.data() };
 
       // Find participant
-      const participant = session.participants.find(
+      const participant = session.participants?.find(
         (p: any) => p.userId === userId
       );
 
@@ -203,20 +202,22 @@ router.get(
       const quiz: any = { quizId: quizDoc.id, ...quizDoc.data() };
 
       // Calculate participant rank
-      const sortedParticipants = session.participants
+      const sortedParticipants = (session.participants || [])
         .slice()
-        .sort((a: any, b: any) => b.score - a.score);
+        .sort((a: any, b: any) => (b.score || 0) - (a.score || 0));
       const rank =
         sortedParticipants.findIndex((p: any) => p.userId === userId) + 1;
 
       // Calculate class average
+      const participants = session.participants || [];
       const classAverage =
-        session.participants.reduce((sum: number, p: any) => sum + p.score, 0) /
-        session.participants.length;
+        participants.length > 0
+          ? participants.reduce((sum: number, p: any) => sum + (p.score || 0), 0) / participants.length
+          : 0;
 
       // Build answer review with correct answers
-      const answerReview = quiz.questions.map((question: any, index: number) => {
-        const userAnswer = participant.answers.find(
+      const answerReview = (quiz.questions || []).map((question: any, index: number) => {
+        const userAnswer = (participant.answers || []).find(
           (a: any) => a.questionId === question.questionId
         );
 
@@ -235,27 +236,27 @@ router.get(
         };
       });
 
+      const correctAnswers = (participant.answers || []).filter((a: any) => a.isCorrect).length;
+      const incorrectAnswers = (participant.answers || []).filter((a: any) => !a.isCorrect).length;
+      const totalQuestions = quiz.questions?.length || 0;
+
       const userResults = {
         participant: {
           userId: participant.userId,
           userName: participant.userName,
-          score: participant.score,
+          score: participant.score || 0,
           rank,
-          totalParticipants: session.participants.length,
+          totalParticipants: participants.length,
         },
         performance: {
-          correctAnswers: participant.answers.filter((a: any) => a.isCorrect)
-            .length,
-          incorrectAnswers: participant.answers.filter((a: any) => !a.isCorrect)
-            .length,
-          totalQuestions: quiz.questions.length,
-          accuracy:
-            (participant.answers.filter((a: any) => a.isCorrect).length /
-              quiz.questions.length) *
-            100,
+          correctAnswers,
+          incorrectAnswers,
+          totalQuestions,
+          accuracy: totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0,
           classAverage: Math.round(classAverage),
-          comparisonToAverage:
-            ((participant.score - classAverage) / classAverage) * 100,
+          comparisonToAverage: classAverage > 0
+            ? (((participant.score || 0) - classAverage) / classAverage) * 100
+            : 0,
         },
         answerReview,
         quiz: {
@@ -323,19 +324,20 @@ router.post(
           'Accuracy %',
         ];
 
-        const rows = session.participants
-          .sort((a: any, b: any) => b.score - a.score)
+        const participants = session.participants || [];
+        const rows = participants
+          .sort((a: any, b: any) => (b.score || 0) - (a.score || 0))
           .map((p: any, index: number) => {
-            const correctAnswers = p.answers.filter(
+            const correctAnswers = (p.answers || []).filter(
               (a: any) => a.isCorrect
             ).length;
-            const totalQuestions = quiz?.questions?.length || p.answers.length;
-            const accuracy = (correctAnswers / totalQuestions) * 100;
+            const totalQuestions = quiz?.questions?.length || (p.answers || []).length;
+            const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
 
             return [
               index + 1,
-              p.userName,
-              p.score,
+              p.userName || 'Unknown',
+              p.score || 0,
               correctAnswers,
               totalQuestions,
               accuracy.toFixed(1),
@@ -363,89 +365,6 @@ router.post(
       return res.status(500).json({
         success: false,
         message: 'Failed to export results',
-        error: error.message,
-      });
-    }
-  }
-);
-
-// Create a new game session
-router.post(
-  '/',
-  authenticate,
-  async (req: Request, res: Response) => {
-    try {
-      const { quizId, classId, settings } = req.body;
-      const teacherId = req.user?.userId;
-
-      if (!teacherId) {
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required',
-        });
-      }
-
-      if (!quizId || !classId) {
-        return res.status(400).json({
-          success: false,
-          message: 'quizId and classId are required',
-        });
-      }
-
-      const gameSettings = {
-        showAnswers: settings?.showAnswers || false,
-        showLeaderboard: settings?.showLeaderboard || true,
-        timePerQuestion: settings?.timePerQuestion,
-      };
-
-      const { sessionId, gameCode } = await gameSessionService.createGameSession(
-        quizId,
-        teacherId,
-        classId,
-        gameSettings
-      );
-
-      return res.status(201).json({
-        success: true,
-        sessionId,
-        gameCode,
-      });
-    } catch (error: any) {
-      console.error('Error creating game session:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to create game session',
-        error: error.message,
-      });
-    }
-  }
-);
-
-// Get game session by ID
-router.get(
-  '/:sessionId',
-  async (req: Request, res: Response) => {
-    try {
-      const { sessionId } = req.params;
-
-      const session = await gameSessionService.getGameSession(sessionId);
-
-      if (!session) {
-        return res.status(404).json({
-          success: false,
-          message: 'Game session not found',
-        });
-      }
-
-      return res.status(200).json({
-        success: true,
-        data: session,
-      });
-    } catch (error: any) {
-      console.error('Error getting game session:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to get game session',
         error: error.message,
       });
     }

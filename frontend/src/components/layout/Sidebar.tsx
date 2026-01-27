@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import {
   XMarkIcon,
   Bars3Icon,
@@ -24,6 +25,8 @@ interface SidebarProps {
 export default function Sidebar({ navItems, header, footer }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const { i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
@@ -32,7 +35,7 @@ export default function Sidebar({ navItems, header, footer }: SidebarProps) {
       {/* Mobile Menu Button */}
       <button
         onClick={toggleSidebar}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg hover:bg-gray-50 transition-colors"
+        className={`lg:hidden fixed top-4 z-50 p-2 bg-white rounded-lg shadow-lg hover:bg-gray-50 transition-colors ${isRTL ? 'right-4' : 'left-4'}`}
         aria-label="Toggle menu"
       >
         <Bars3Icon className="w-6 h-6 text-gray-700" />
@@ -54,16 +57,20 @@ export default function Sidebar({ navItems, header, footer }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 h-screen w-64 bg-white shadow-xl z-50 flex flex-col
+          fixed top-0 h-screen w-64 bg-white shadow-xl z-50 flex flex-col
           transition-transform duration-300 ease-in-out
           lg:sticky lg:translate-x-0
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          ${isRTL ? 'right-0' : 'left-0'}
+          ${isOpen 
+            ? 'translate-x-0' 
+            : isRTL ? 'translate-x-full' : '-translate-x-full'
+          }
         `}
       >
         {/* Close button for mobile */}
         <button
           onClick={toggleSidebar}
-          className="lg:hidden absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className={`lg:hidden absolute top-4 p-2 hover:bg-gray-100 rounded-lg transition-colors ${isRTL ? 'left-4' : 'right-4'}`}
           aria-label="Close menu"
         >
           <XMarkIcon className="w-6 h-6 text-gray-700" />
@@ -85,7 +92,9 @@ export default function Sidebar({ navItems, header, footer }: SidebarProps) {
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
+                className={`flex items-center px-4 py-3 rounded-lg transition-all ${
+                  isRTL ? 'space-x-reverse' : ''
+                } space-x-3 ${
                   isActive
                     ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md'
                     : 'text-gray-700 hover:bg-gray-100'

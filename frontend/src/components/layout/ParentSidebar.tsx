@@ -3,7 +3,9 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import Sidebar from './Sidebar';
+import LanguageSwitcher from './LanguageSwitcher';
 import {
   HomeIcon,
   UserGroupIcon,
@@ -16,6 +18,7 @@ import {
 export default function ParentSidebar() {
   const { user, signOut } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const handleLogout = async () => {
     await signOut();
@@ -24,22 +27,22 @@ export default function ParentSidebar() {
 
   const navItems = [
     {
-      label: 'Dashboard',
+      label: t('nav.dashboard'),
       href: '/parent/dashboard',
       icon: <HomeIcon />,
     },
     {
-      label: 'My Children',
+      label: t('parent.children.title'),
       href: '/parent/children',
       icon: <UserGroupIcon />,
     },
     {
-      label: 'Reports',
+      label: t('nav.reports'),
       href: '/parent/reports',
       icon: <ChartBarIcon />,
     },
     {
-      label: 'Notifications',
+      label: t('nav.notifications'),
       href: '/parent/notifications',
       icon: <BellIcon />,
     },
@@ -53,25 +56,26 @@ export default function ParentSidebar() {
       <h3 className="font-semibold text-gray-900 truncate">
         {user?.firstName} {user?.lastName}
       </h3>
-      <p className="text-sm text-gray-500">Parent</p>
+      <p className="text-sm text-gray-500">{t('auth.parent')}</p>
     </div>
   );
 
   const footer = (
     <div className="space-y-2">
+      <LanguageSwitcher />
       <button
         onClick={() => router.push('/parent/settings')}
         className="w-full flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
       >
         <Cog6ToothIcon className="w-5 h-5" />
-        <span>Settings</span>
+        <span>{t('common.settings')}</span>
       </button>
       <button
         onClick={handleLogout}
         className="w-full flex items-center space-x-3 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
       >
         <ArrowRightOnRectangleIcon className="w-5 h-5" />
-        <span>Logout</span>
+        <span>{t('common.logout')}</span>
       </button>
     </div>
   );

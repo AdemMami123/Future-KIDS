@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import QuestionDisplay from '@/components/game/QuestionDisplay';
 import AnswerOptions from '@/components/game/AnswerOptions';
 import GameTimer from '@/components/game/GameTimer';
-import ScoreAnimation from '@/components/game/ScoreAnimation';
 
 export default function StudentGamePlayPage() {
   const params = useParams();
@@ -25,11 +24,6 @@ export default function StudentGamePlayPage() {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [showScoreAnimation, setShowScoreAnimation] = useState(false);
-  const [lastResult, setLastResult] = useState<{
-    points: number;
-    isCorrect: boolean;
-  } | null>(null);
   const [timePerQuestion, setTimePerQuestion] = useState(30);
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
 
@@ -92,13 +86,6 @@ export default function StudentGamePlayPage() {
           setHasSubmitted(true);
           setWaitingForNext(true);
 
-          // Show score animation
-          setLastResult({
-            points: response.points || 0,
-            isCorrect: response.isCorrect || false,
-          });
-          setShowScoreAnimation(true);
-
           // Update total score
           if (response.isCorrect) {
             setScore((prev) => prev + (response.points || 0));
@@ -137,7 +124,6 @@ export default function StudentGamePlayPage() {
       setSelectedAnswer(null);
       setHasSubmitted(false);
       setWaitingForNext(false);
-      setShowScoreAnimation(false);
       setQuestionStartTime(Date.now());
     });
 
@@ -152,8 +138,15 @@ export default function StudentGamePlayPage() {
       }
     });
 
-    // Game ended
+    // Game ended - store results and redirect
     socket.on?.('game-ended', (data: any) => {
+      // Store leaderboard data for immediate display
+      if (data.leaderboard) {
+        sessionStorage.setItem(
+          `game-results-${sessionId}`,
+          JSON.stringify(data)
+        );
+      }
       router.push(`/student/games/${sessionId}/results`);
     });
 
@@ -335,14 +328,6 @@ export default function StudentGamePlayPage() {
           )}
         </div>
       </div>
-
-      {/* Score Animation Overlay */}
-      <ScoreAnimation
-        points={lastResult?.points || 0}
-        isCorrect={lastResult?.isCorrect || false}
-        show={showScoreAnimation}
-        onComplete={() => setShowScoreAnimation(false)}
-      />
     </>
   );
 }

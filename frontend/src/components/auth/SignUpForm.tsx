@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth, SignUpData, UserRole } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle, GraduationCap, Users, BookOpen } from 'lucide-react';
 import Link from 'next/link';
@@ -12,6 +13,7 @@ interface SignUpFormProps {
 
 export default function SignUpForm({ onSuccess }: SignUpFormProps) {
   const { signUp, loading, error, clearError } = useAuth();
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -53,31 +55,31 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
     switch (step) {
       case 1:
         if (!formData.role) {
-          setFormError('Please select a role');
+          setFormError(t('auth.selectRole'));
           return false;
         }
         break;
       case 2:
         if (!formData.email || !formData.password || !formData.confirmPassword) {
-          setFormError('Please fill in all fields');
+          setFormError(t('forms.required'));
           return false;
         }
         if (!/\S+@\S+\.\S+/.test(formData.email)) {
-          setFormError('Please enter a valid email');
+          setFormError(t('forms.invalidEmail'));
           return false;
         }
         if (formData.password.length < 6) {
-          setFormError('Password must be at least 6 characters');
+          setFormError(t('auth.passwordMinLength'));
           return false;
         }
         if (formData.password !== formData.confirmPassword) {
-          setFormError('Passwords do not match');
+          setFormError(t('auth.passwordMismatch'));
           return false;
         }
         break;
       case 3:
         if (!formData.firstName || !formData.lastName) {
-          setFormError('Please enter your name');
+          setFormError(t('auth.nameRequired'));
           return false;
         }
         break;
@@ -109,14 +111,14 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
       await signUp(signUpData);
       onSuccess?.();
     } catch (error: any) {
-      setFormError(error.message || 'Failed to sign up');
+      setFormError(error.message || t('messages.error.generic'));
     }
   };
 
   const roleOptions = [
-    { value: 'teacher', label: 'Teacher', icon: GraduationCap, description: 'Create and manage quizzes' },
-    { value: 'student', label: 'Student', icon: BookOpen, description: 'Join games and take quizzes' },
-    { value: 'parent', label: 'Parent', icon: Users, description: 'Monitor children\'s progress' },
+    { value: 'teacher', label: t('auth.teacher'), icon: GraduationCap, description: t('teacher.dashboard.createQuiz') },
+    { value: 'student', label: t('auth.student'), icon: BookOpen, description: t('student.games.join') },
+    { value: 'parent', label: t('auth.parent'), icon: Users, description: t('parent.dashboard.performance') },
   ];
 
   return (
@@ -153,9 +155,9 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
           ))}
         </div>
         <div className="flex justify-between text-xs text-gray-600 mt-2">
-          <span>Select Role</span>
-          <span>Account Info</span>
-          <span>Personal Details</span>
+          <span>{t('auth.selectRole')}</span>
+          <span>{t('auth.createAccount')}</span>
+          <span>{t('dashboard.overview')}</span>
         </div>
       </div>
 
@@ -182,7 +184,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-4"
             >
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Select Your Role</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">{t('auth.selectRole')}</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {roleOptions.map((option) => {
                   const Icon = option.icon;
@@ -222,12 +224,12 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-4"
             >
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Account Information</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">{t('auth.createAccount')}</h2>
 
               {/* Email */}
               <div className="space-y-2">
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email Address
+                  {t('auth.email')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -240,7 +242,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
                     value={formData.email}
                     onChange={handleChange}
                     className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="you@example.com"
+                    placeholder={t('auth.emailPlaceholder')}
                   />
                 </div>
               </div>
@@ -248,7 +250,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
               {/* Password */}
               <div className="space-y-2">
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password
+                  {t('auth.password')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -261,7 +263,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
                     value={formData.password}
                     onChange={handleChange}
                     className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="••••••••"
+                    placeholder={t('auth.passwordPlaceholder')}
                   />
                   <button
                     type="button"
@@ -275,13 +277,13 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
                     )}
                   </button>
                 </div>
-                <p className="text-xs text-gray-500">At least 6 characters</p>
+                <p className="text-xs text-gray-500">{t('auth.passwordMinLength')}</p>
               </div>
 
               {/* Confirm Password */}
               <div className="space-y-2">
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                  Confirm Password
+                  {t('auth.confirmPassword')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -294,7 +296,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="••••••••"
+                    placeholder={t('auth.passwordPlaceholder')}
                   />
                   <button
                     type="button"
@@ -321,13 +323,13 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-4"
             >
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Personal Details</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">{t('auth.personalDetails')}</h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* First Name */}
                 <div className="space-y-2">
                   <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                    First Name
+                    {t('auth.firstName')}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -340,7 +342,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
                       value={formData.firstName}
                       onChange={handleChange}
                       className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="John"
+                      placeholder={t('auth.firstNamePlaceholder')}
                     />
                   </div>
                 </div>
@@ -348,7 +350,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
                 {/* Last Name */}
                 <div className="space-y-2">
                   <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                    Last Name
+                    {t('auth.lastName')}
                   </label>
                   <input
                     type="text"
@@ -357,7 +359,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
                     value={formData.lastName}
                     onChange={handleChange}
                     className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Doe"
+                    placeholder={t('auth.lastNamePlaceholder')}
                   />
                 </div>
               </div>
@@ -367,7 +369,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
                 <>
                   <div className="space-y-2">
                     <label htmlFor="schoolId" className="block text-sm font-medium text-gray-700">
-                      School ID (Optional)
+                      {t('auth.schoolId')}
                     </label>
                     <input
                       type="text"
@@ -376,12 +378,12 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
                       value={formData.schoolId}
                       onChange={handleChange}
                       className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="e.g., SCH12345"
+                      placeholder={t('auth.schoolIdPlaceholder')}
                     />
                   </div>
                   <div className="space-y-2">
                     <label htmlFor="subjects" className="block text-sm font-medium text-gray-700">
-                      Subjects (Optional)
+                      {t('auth.subjects')}
                     </label>
                     <input
                       type="text"
@@ -389,7 +391,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
                       name="subjects"
                       onChange={handleSubjectsChange}
                       className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Math, Science, History (comma-separated)"
+                      placeholder={t('auth.subjectsPlaceholder')}
                     />
                   </div>
                 </>
@@ -399,7 +401,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
                 <>
                   <div className="space-y-2">
                     <label htmlFor="grade" className="block text-sm font-medium text-gray-700">
-                      Grade (Optional)
+                      {t('auth.grade')}
                     </label>
                     <select
                       id="grade"
@@ -408,7 +410,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
                       onChange={handleChange}
                       className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      <option value="">Select Grade</option>
+                      <option value="">{t('auth.selectGrade')}</option>
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((grade) => (
                         <option key={grade} value={`Grade ${grade}`}>
                           Grade {grade}
@@ -418,7 +420,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
                   </div>
                   <div className="space-y-2">
                     <label htmlFor="classId" className="block text-sm font-medium text-gray-700">
-                      Class ID (Optional)
+                      {t('auth.classId')}
                     </label>
                     <input
                       type="text"
@@ -427,7 +429,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
                       value={formData.classId}
                       onChange={handleChange}
                       className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="e.g., CLS-2024-A"
+                      placeholder={t('auth.classIdPlaceholder')}
                     />
                   </div>
                 </>
@@ -446,7 +448,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
               whileTap={{ scale: 0.98 }}
               className="flex-1 bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors"
             >
-              Back
+              {t('common.back')}
             </motion.button>
           )}
           
@@ -458,7 +460,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
               whileTap={{ scale: 0.98 }}
               className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg"
             >
-              Next
+              {t('common.next')}
             </motion.button>
           ) : (
             <motion.button
@@ -471,10 +473,10 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
               {loading ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Creating account...</span>
+                  <span>{t('auth.creatingAccount')}</span>
                 </div>
               ) : (
-                'Create Account'
+                t('auth.createAccount')
               )}
             </motion.button>
           )}
@@ -483,12 +485,12 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps) {
         {/* Sign In Link */}
         <div className="text-center mt-6">
           <p className="text-sm text-gray-600">
-            Already have an account?{' '}
+            {t('auth.haveAccount')}{' '}
             <Link
               href="/auth/login"
               className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
             >
-              Sign in
+              {t('auth.login')}
             </Link>
           </p>
         </div>

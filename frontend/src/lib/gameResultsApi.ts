@@ -1,5 +1,27 @@
 import api from './api';
 
+// Types
+export interface ParticipantResult {
+  userId: string;
+  userName: string;
+  avatarUrl?: string;
+  score: number;
+  rank: number;
+  totalAnswers: number;
+  correctAnswers: number;
+}
+
+export interface QuestionStat {
+  questionId: string;
+  questionText: string;
+  questionNumber: number;
+  correctCount: number;
+  incorrectCount: number;
+  percentageCorrect: number;
+  averageTime: number;
+  totalAnswers: number;
+}
+
 export interface GameResults {
   session: {
     sessionId: string;
@@ -22,25 +44,22 @@ export interface GameResults {
     totalAnswers: number;
     overallAccuracy: number;
   };
-  leaderboard: Array<{
-    userId: string;
-    userName: string;
-    avatarUrl?: string;
-    score: number;
-    totalAnswers: number;
-    correctAnswers: number;
-    rank: number;
-  }>;
-  questionStats: Array<{
-    questionId: string;
-    questionText: string;
-    questionNumber: number;
-    correctCount: number;
-    incorrectCount: number;
-    percentageCorrect: number;
-    averageTime: number;
-    totalAnswers: number;
-  }>;
+  leaderboard: ParticipantResult[];
+  questionStats: QuestionStat[];
+}
+
+export interface AnswerReview {
+  questionNumber: number;
+  questionId: string;
+  questionText: string;
+  questionImageUrl?: string;
+  type: string;
+  options: string[];
+  correctAnswer: string | number;
+  userAnswer: string | number | null;
+  isCorrect: boolean;
+  points: number;
+  timeSpent: number;
 }
 
 export interface UserResults {
@@ -59,19 +78,7 @@ export interface UserResults {
     classAverage: number;
     comparisonToAverage: number;
   };
-  answerReview: Array<{
-    questionNumber: number;
-    questionId: string;
-    questionText: string;
-    questionImageUrl?: string;
-    type: string;
-    options: string[];
-    correctAnswer: string;
-    userAnswer: string | null;
-    isCorrect: boolean;
-    points: number;
-    timeSpent: number;
-  }>;
+  answerReview: AnswerReview[];
   quiz: {
     quizId: string;
     title: string;
@@ -80,27 +87,29 @@ export interface UserResults {
 }
 
 export const gameResultsApi = {
-  // Get full game results
+  // Get full game results (for teachers)
   getGameResults: async (sessionId: string): Promise<GameResults> => {
-    const response: any = await api.get(`/games/${sessionId}/results`);
-    return response.results;
+    const response = await api.get(`/games/${sessionId}/results`);
+    return response.data.results;
   },
 
-  // Get user-specific results
-  getUserResults: async (
-    sessionId: string,
-    userId: string
-  ): Promise<UserResults> => {
-    const response: any = await api.get(`/games/${sessionId}/results/${userId}`);
-    return response.results;
+  // Get user-specific results (for students)
+  getUserResults: async (sessionId: string, userId: string): Promise<UserResults> => {
+    const response = await api.get(`/games/${sessionId}/results/${userId}`);
+    return response.data.results;
   },
 
   // Export results as CSV
   exportResults: async (
     sessionId: string,
-    format: 'csv' = 'csv'
+    format: 'csv' | 'pdf' = 'csv'
   ): Promise<{ data: string; filename: string }> => {
     const response = await api.post(`/games/${sessionId}/export`, { format });
-    return response.data;
+    return {
+      data: response.data.data,
+      filename: response.data.filename,
+    };
   },
 };
+
+export default gameResultsApi;

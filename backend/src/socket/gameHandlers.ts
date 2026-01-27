@@ -627,7 +627,7 @@ export const setupGameHandlers = (io: Server) => {
       'end-game',
       async (
         data: { sessionId: string; teacherId: string },
-        callback: (response: { success: boolean; error?: string }) => void
+        callback: (response: { success: boolean; results?: any; error?: string }) => void
       ) => {
         try {
           // Verify the requester is the teacher
@@ -645,16 +645,104 @@ export const setupGameHandlers = (io: Server) => {
 
           await gameSessionService.completeGameSession(data.sessionId);
 
-          // Broadcast game end to all participants
-          io.to(data.sessionId).emit('game-ended', {
-            sessionId: data.sessionId,
+          // Get the completed session with all participant data
+          const completedSession = await gameSessionService.getGameSession(data.sessionId);
+          
+          // Get quiz details for complete results
+          const { firestore } = require('../config/firebase');
+          const quizDoc = await firestore.collection('quizzes').doc(session.quizId).get();
+          const quiz = quizDoc.exists ? { quizId: quizDoc.id, ...quizDoc.data() } : null;
+          
+          // Calculate complete results inline
+          const participants = completedSession?.participants || [];
+          const questions = quiz?.questions || [];
+          
+          // Build leaderboard
+          const leaderboard = participants
+            .map((p: any) => ({
+              userId: p.userId,
+              userName: p.userName || 'Unknown',
+              avatarUrl: p.avatarUrl,
+              score: p.score || 0,
+              totalAnswers: (p.answers || []).length,
+              correctAnswers: (p.answers || []).filter((a: any) => a.isCorrect).length,
+            }))
+            .sort((a: any, b: any) => b.score - a.score)
+            .map((p: any, index: number) => ({
+              ...p,
+              rank: index + 1,
+            }));
+
+          // Calculate question stats
+          const questionStats = questions.map((question: any, index: number) => {
+            const answers = participants.flatMap((p: any) =>
+              (p.answers || []).filter((a: any) => a.questionId === question.questionId)
+            );
+            const correctCount = answers.filter((a: any) => a.isCorrect).length;
+            const totalAnswers = answers.length;
+            const averageTime = totalAnswers > 0
+              ? answers.reduce((sum: number, a: any) => sum + (a.timeSpent || 0), 0) / totalAnswers
+              : 0;
+
+            return {
+              questionId: question.questionId,
+              questionText: question.questionText || 'Question ' + (index + 1),
+              questionNumber: index + 1,
+              correctCount,
+              incorrectCount: totalAnswers - correctCount,
+              percentageCorrect: totalAnswers > 0 ? (correctCount / totalAnswers) * 100 : 0,
+              averageTime: Math.round(averageTime),
+              totalAnswers,
+            };
           });
+
+          // Calculate overall statistics
+          const totalCorrectAnswers = participants.reduce(
+            (sum: number, p: any) => sum + (p.answers || []).filter((a: any) => a.isCorrect).length, 0
+          );
+          const totalAnswers = participants.reduce(
+            (sum: number, p: any) => sum + (p.answers || []).length, 0
+          );
+          const averageScore = participants.length > 0
+            ? participants.reduce((sum: number, p: any) => sum + (p.score || 0), 0) / participants.length
+            : 0;
+
+          // Build complete game results
+          const gameResults = {
+            session: {
+              sessionId: data.sessionId,
+              gameCode: completedSession?.gameCode,
+              status: 'completed',
+              startedAt: completedSession?.startedAt,
+              completedAt: completedSession?.completedAt,
+            },
+            quiz: quiz ? {
+              quizId: quiz.quizId,
+              title: quiz.title || 'Untitled Quiz',
+              description: quiz.description || '',
+              totalQuestions: questions.length,
+            } : null,
+            statistics: {
+              totalParticipants: participants.length,
+              participationRate: 100,
+              averageScore: Math.round(averageScore),
+              totalCorrectAnswers,
+              totalAnswers,
+              overallAccuracy: totalAnswers > 0 ? (totalCorrectAnswers / totalAnswers) * 100 : 0,
+            },
+            leaderboard,
+            questionStats,
+          };
+
+          // Broadcast game end to all participants WITH complete results
+          io.to(data.sessionId).emit('game-ended', gameResults);
 
           callback({
             success: true,
+            results: gameResults,
           });
 
-          console.log(`🏁 Game ended: ${data.sessionId}`);
+          console.log(`🏁 Game ended: ${data.sessionId} with ${participants.length} participants`);
         } catch (error: any) {
           console.error('Error ending game:', error);
           callback({

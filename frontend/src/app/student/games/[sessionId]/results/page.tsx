@@ -10,12 +10,19 @@ import {
   Target,
   Award,
   ArrowLeft,
-  Share2,
+  RefreshCw,
 } from 'lucide-react';
 import QuestionReview from '@/components/game/QuestionReview';
 import ShareResults from '@/components/game/ShareResults';
-import { gameResultsApi, UserResults } from '@/lib/gameResultsApi';
+import { gameResultsApi, UserResults, ParticipantResult } from '@/lib/gameResultsApi';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Cached results from socket
+interface CachedResults {
+  sessionId: string;
+  leaderboard: ParticipantResult[];
+  totalParticipants: number;
+}
 
 export default function StudentResultsPage() {
   const params = useParams();
@@ -24,9 +31,31 @@ export default function StudentResultsPage() {
   const sessionId = params.sessionId as string;
 
   const [results, setResults] = useState<UserResults | null>(null);
+  const [cachedResults, setCachedResults] = useState<CachedResults | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [retrying, setRetrying] = useState(false);
 
+  // Load cached results immediately
+  useEffect(() => {
+    const cached = sessionStorage.getItem(`game-results-${sessionId}`);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setCachedResults(parsed);
+        // Celebrate immediately with cached data
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+      } catch (e) {
+        console.error('Failed to parse cached results:', e);
+      }
+    }
+  }, [sessionId]);
+
+  // Load full results from API
   useEffect(() => {
     const loadResults = async () => {
       if (!user) return;
@@ -34,10 +63,13 @@ export default function StudentResultsPage() {
       try {
         const data = await gameResultsApi.getUserResults(sessionId, user.userId);
         setResults(data);
+        setError('');
 
-        // Celebrate based on performance
-        if (data.performance.accuracy >= 80) {
-          // Great performance - lots of confetti
+        // Clear cached results
+        sessionStorage.removeItem(`game-results-${sessionId}`);
+
+        // Celebrate based on performance (only if not already from cache)
+        if (!cachedResults && data.performance.accuracy >= 80) {
           confetti({
             particleCount: 150,
             spread: 100,
@@ -57,8 +89,7 @@ export default function StudentResultsPage() {
               origin: { x: 1 },
             });
           }, 250);
-        } else if (data.performance.accuracy >= 60) {
-          // Good performance - moderate confetti
+        } else if (!cachedResults && data.performance.accuracy >= 60) {
           confetti({
             particleCount: 100,
             spread: 70,
@@ -67,28 +98,44 @@ export default function StudentResultsPage() {
         }
       } catch (err: any) {
         console.error('Error loading results:', err);
-        console.error('Error details:', {
-          message: err.message,
-          response: err.response?.data,
-          status: err.response?.status,
-          config: err.config
-        });
-        setError(err.response?.data?.message || err.message || 'Failed to load results');
+        if (!cachedResults) {
+          setError(err.response?.data?.message || err.message || 'Failed to load results');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     loadResults();
-  }, [sessionId, user]);
+  }, [sessionId, user, cachedResults]);
+
+  const handleRetry = async () => {
+    if (!user) return;
+    setRetrying(true);
+    try {
+      const data = await gameResultsApi.getUserResults(sessionId, user.userId);
+      setResults(data);
+      setError('');
+      sessionStorage.removeItem(`game-results-${sessionId}`);
+    } catch (err: any) {
+      console.error('Error retrying:', err);
+      setError(err.response?.data?.message || 'Failed to load detailed results');
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  // Find current user in cached leaderboard
+  const cachedUserResult = cachedResults?.leaderboard?.find(
+    (p) => p.userId === user?.userId
+  );
 
   const getMotivationalMessage = (accuracy: number) => {
     if (accuracy >= 90) {
       return {
         emoji: '🌟',
         title: 'Outstanding!',
-        message:
-          "You're a quiz champion! Your knowledge and quick thinking are impressive!",
+        message: "You're a quiz champion! Your knowledge and quick thinking are impressive!",
         color: 'text-yellow-600',
         bgColor: 'bg-yellow-50',
       };
@@ -96,8 +143,7 @@ export default function StudentResultsPage() {
       return {
         emoji: '🎉',
         title: 'Excellent Work!',
-        message:
-          "Great job! You've mastered this topic and showed strong understanding!",
+        message: "Great job! You've mastered this topic and showed strong understanding!",
         color: 'text-green-600',
         bgColor: 'bg-green-50',
       };
@@ -105,8 +151,7 @@ export default function StudentResultsPage() {
       return {
         emoji: '👍',
         title: 'Well Done!',
-        message:
-          "Nice work! You're on the right track. Keep practicing to improve even more!",
+        message: "Nice work! You're on the right track. Keep practicing to improve even more!",
         color: 'text-blue-600',
         bgColor: 'bg-blue-50',
       };
@@ -114,8 +159,7 @@ export default function StudentResultsPage() {
       return {
         emoji: '💪',
         title: 'Good Effort!',
-        message:
-          "You're making progress! Review the questions you missed and try again!",
+        message: "You're making progress! Review the questions you missed and try again!",
         color: 'text-purple-600',
         bgColor: 'bg-purple-50',
       };
@@ -123,8 +167,7 @@ export default function StudentResultsPage() {
       return {
         emoji: '📚',
         title: 'Keep Learning!',
-        message:
-          "Don't give up! Practice makes perfect. Review the material and you'll do better next time!",
+        message: "Don't give up! Practice makes perfect. Review the material and you'll do better next time!",
         color: 'text-orange-600',
         bgColor: 'bg-orange-50',
       };
@@ -132,15 +175,15 @@ export default function StudentResultsPage() {
       return {
         emoji: '🎯',
         title: 'Keep Trying!',
-        message:
-          "Every expert was once a beginner. Use this as a learning opportunity and come back stronger!",
+        message: "Every expert was once a beginner. Use this as a learning opportunity and come back stronger!",
         color: 'text-pink-600',
         bgColor: 'bg-pink-50',
       };
     }
   };
 
-  if (loading) {
+  // Show loading only if we have no data at all
+  if (loading && !cachedResults && !cachedUserResult) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
@@ -151,7 +194,8 @@ export default function StudentResultsPage() {
     );
   }
 
-  if (error || !results) {
+  // Show error only if we have no data at all
+  if (!results && !cachedUserResult) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
@@ -167,11 +211,42 @@ export default function StudentResultsPage() {
     );
   }
 
-  const motivational = getMotivationalMessage(results.performance.accuracy);
+  // Use data from API or cached results
+  const hasFullResults = !!results;
+  const score = results?.participant?.score ?? cachedUserResult?.score ?? 0;
+  const rank = results?.participant?.rank ?? cachedUserResult?.rank ?? 0;
+  const totalParticipants = results?.participant?.totalParticipants ?? cachedResults?.totalParticipants ?? 0;
+  const correctAnswers = results?.performance?.correctAnswers ?? cachedUserResult?.correctAnswers ?? 0;
+  const totalQuestions = results?.performance?.totalQuestions ?? cachedUserResult?.totalAnswers ?? 0;
+  const accuracy = results?.performance?.accuracy ?? (totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0);
+
+  const motivational = getMotivationalMessage(accuracy);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
+        {/* Loading Full Results Banner */}
+        {!hasFullResults && cachedUserResult && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+              <span className="text-yellow-700">Loading detailed results...</span>
+            </div>
+            <button
+              onClick={handleRetry}
+              disabled={retrying}
+              className="flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${retrying ? 'animate-spin' : ''}`} />
+              Retry
+            </button>
+          </motion.div>
+        )}
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -189,7 +264,7 @@ export default function StudentResultsPage() {
           <h1 className="text-4xl font-bold text-gray-800 mb-2">
             Your Results
           </h1>
-          <p className="text-gray-600">{results.quiz.title}</p>
+          <p className="text-gray-600">{results?.quiz?.title || 'Quiz Results'}</p>
         </motion.div>
 
         {/* Motivational Message */}
@@ -217,150 +292,148 @@ export default function StudentResultsPage() {
             <div className="text-center">
               <Trophy className="w-8 h-8 mx-auto mb-2" />
               <div className="text-3xl font-bold">
-                {results.participant.score}
+                {score}
               </div>
               <div className="text-sm opacity-90">Total Score</div>
             </div>
             <div className="text-center">
               <Award className="w-8 h-8 mx-auto mb-2" />
               <div className="text-3xl font-bold">
-                #{results.participant.rank}
+                #{rank}
               </div>
               <div className="text-sm opacity-90">
-                of {results.participant.totalParticipants}
+                of {totalParticipants}
               </div>
             </div>
             <div className="text-center">
               <Target className="w-8 h-8 mx-auto mb-2" />
               <div className="text-3xl font-bold">
-                {results.performance.accuracy.toFixed(1)}%
+                {accuracy.toFixed(1)}%
               </div>
               <div className="text-sm opacity-90">Accuracy</div>
             </div>
             <div className="text-center">
               <TrendingUp className="w-8 h-8 mx-auto mb-2" />
               <div className="text-3xl font-bold">
-                {results.performance.correctAnswers}/
-                {results.performance.totalQuestions}
+                {correctAnswers}/{totalQuestions}
               </div>
               <div className="text-sm opacity-90">Correct</div>
             </div>
           </div>
         </motion.div>
 
-        {/* Performance Comparison */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white rounded-xl shadow-md p-6 mb-8"
-        >
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Class Comparison
-          </h3>
+        {/* Performance Comparison - Only show with full results */}
+        {hasFullResults && results?.performance?.classAverage !== undefined && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-xl shadow-md p-6 mb-8"
+          >
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Class Comparison
+            </h3>
 
-          <div className="space-y-4">
-            {/* Your Score */}
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">
-                  Your Score
-                </span>
-                <span className="text-sm font-bold text-purple-600">
-                  {results.participant.score}
-                </span>
+            <div className="space-y-4">
+              {/* Your Score */}
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">
+                    Your Score
+                  </span>
+                  <span className="text-sm font-bold text-purple-600">
+                    {score} pts
+                  </span>
+                </div>
+                <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{
+                      width: `${Math.min(
+                        (score / Math.max(results.performance.classAverage * 1.5, score)) * 100,
+                        100
+                      )}%`,
+                    }}
+                    transition={{ delay: 0.5, duration: 1 }}
+                    className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                  />
+                </div>
               </div>
-              <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{
-                    width: `${
-                      (results.participant.score /
-                        (results.performance.classAverage * 2)) *
-                      100
-                    }%`,
-                  }}
-                  transition={{ delay: 0.5, duration: 1 }}
-                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
-                />
+
+              {/* Class Average */}
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">
+                    Class Average
+                  </span>
+                  <span className="text-sm font-bold text-gray-600">
+                    {results.performance.classAverage} pts
+                  </span>
+                </div>
+                <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{
+                      width: `${Math.min(
+                        (results.performance.classAverage / Math.max(results.performance.classAverage * 1.5, score)) * 100,
+                        100
+                      )}%`,
+                    }}
+                    transition={{ delay: 0.7, duration: 1 }}
+                    className="h-full bg-gray-400"
+                  />
+                </div>
+              </div>
+
+              {/* Comparison Message */}
+              <div className="text-center pt-2">
+                {results.performance.comparisonToAverage > 0 ? (
+                  <p className="text-green-600 font-medium">
+                    🎉 You scored {results.performance.comparisonToAverage.toFixed(0)}% above average!
+                  </p>
+                ) : results.performance.comparisonToAverage < 0 ? (
+                  <p className="text-orange-600 font-medium">
+                    Keep practicing! You&apos;re {Math.abs(results.performance.comparisonToAverage).toFixed(0)}% below the class average.
+                  </p>
+                ) : (
+                  <p className="text-blue-600 font-medium">
+                    You scored exactly at the class average!
+                  </p>
+                )}
               </div>
             </div>
-
-            {/* Class Average */}
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">
-                  Class Average
-                </span>
-                <span className="text-sm font-bold text-gray-600">
-                  {results.performance.classAverage}
-                </span>
-              </div>
-              <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{
-                    width: `${
-                      (results.performance.classAverage /
-                        (results.performance.classAverage * 2)) *
-                      100
-                    }%`,
-                  }}
-                  transition={{ delay: 0.7, duration: 1 }}
-                  className="h-full bg-gray-400"
-                />
-              </div>
-            </div>
-
-            {/* Comparison Message */}
-            <div className="text-center pt-2">
-              {results.performance.comparisonToAverage >= 0 ? (
-                <p className="text-green-600 font-medium">
-                  🎉 You scored{' '}
-                  {Math.abs(results.performance.comparisonToAverage).toFixed(1)}
-                  % above the class average!
-                </p>
-              ) : (
-                <p className="text-orange-600 font-medium">
-                  You scored{' '}
-                  {Math.abs(results.performance.comparisonToAverage).toFixed(1)}
-                  % below the class average. Keep practicing!
-                </p>
-              )}
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* Share Results */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="mb-8"
+          className="mb-8 flex justify-center"
         >
           <ShareResults
-            sessionId={sessionId}
-            quizTitle={results.quiz.title}
-            score={results.participant.score}
-            rank={results.participant.rank}
-            totalParticipants={results.participant.totalParticipants}
+            title="My Quiz Results"
+            score={score}
+            rank={rank}
+            totalParticipants={totalParticipants}
+            quizTitle={results?.quiz?.title || 'Quiz'}
           />
         </motion.div>
 
-        {/* Question Review */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Question Review
-          </h2>
-          <QuestionReview
-            questions={results.answerReview}
-            showUserAnswers={true}
-          />
-        </motion.div>
+        {/* Question Review - Only show with full results */}
+        {hasFullResults && results?.answerReview && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+              Question Review
+            </h2>
+            <QuestionReview answers={results.answerReview} showCorrectAnswers={true} />
+          </motion.div>
+        )}
       </div>
     </div>
   );

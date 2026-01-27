@@ -1,128 +1,155 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Download, Share2, Copy, Check } from 'lucide-react';
-import { gameResultsApi } from '@/lib/gameResultsApi';
+import { motion } from 'framer-motion';
+import { Share2, Copy, Check, Twitter, Facebook, Link2 } from 'lucide-react';
 
 interface ShareResultsProps {
-  sessionId: string;
-  quizTitle: string;
+  title: string;
   score: number;
-  rank: number;
-  totalParticipants: number;
+  rank?: number;
+  totalParticipants?: number;
+  quizTitle: string;
 }
 
 export default function ShareResults({
-  sessionId,
-  quizTitle,
+  title,
   score,
   rank,
   totalParticipants,
+  quizTitle,
 }: ShareResultsProps) {
   const [copied, setCopied] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
 
-  const shareText = `I scored ${score} points and ranked #${rank} out of ${totalParticipants} in "${quizTitle}"! 🎉`;
+  const shareText = rank
+    ? `🎉 I scored ${score} points and ranked #${rank} out of ${totalParticipants} in "${quizTitle}"!`
+    : `🎉 I scored ${score} points in "${quizTitle}"!`;
+
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(shareText);
+      await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy:', error);
+    } catch (err) {
+      console.error('Failed to copy:', err);
     }
   };
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Quiz Results',
-          text: shareText,
-        });
-      } catch (error) {
-        console.error('Error sharing:', error);
-      }
-    } else {
-      handleCopyLink();
-    }
-  };
+  const handleShare = async (platform: string) => {
+    const encodedText = encodeURIComponent(shareText);
+    const encodedUrl = encodeURIComponent(shareUrl);
 
-  const handleDownloadCSV = async () => {
-    try {
-      setDownloading(true);
-      const { data, filename } = await gameResultsApi.exportResults(
-        sessionId,
-        'csv'
-      );
-
-      // Create blob and download
-      const blob = new Blob([data], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading CSV:', error);
-    } finally {
-      setDownloading(false);
+    let shareLink = '';
+    switch (platform) {
+      case 'twitter':
+        shareLink = `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
+        break;
+      case 'facebook':
+        shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`;
+        break;
+      case 'native':
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: quizTitle,
+              text: shareText,
+              url: shareUrl,
+            });
+          } catch (err) {
+            console.error('Share failed:', err);
+          }
+        }
+        return;
+      default:
+        return;
     }
+
+    if (shareLink) {
+      window.open(shareLink, '_blank', 'width=600,height=400');
+    }
+    setShowShareMenu(false);
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">
+    <div className="relative">
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setShowShareMenu(!showShareMenu)}
+        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-shadow"
+      >
+        <Share2 className="w-4 h-4" />
         Share Results
-      </h3>
+      </motion.button>
 
-      <div className="space-y-3">
-        {/* Share Button */}
-        <button
-          onClick={handleShare}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-        >
-          <Share2 className="w-5 h-5" />
-          Share Results
-        </button>
+      {showShareMenu && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setShowShareMenu(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border z-50 overflow-hidden"
+          >
+            <div className="p-3 border-b bg-gray-50">
+              <p className="text-sm text-gray-600 font-medium">Share your achievement!</p>
+            </div>
+            <div className="p-2">
+              <button
+                onClick={() => handleShare('native')}
+                className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg flex items-center justify-center">
+                  <Share2 className="w-4 h-4 text-white" />
+                </div>
+                <span className="font-medium text-gray-700">Share</span>
+              </button>
 
-        {/* Copy Text Button */}
-        <button
-          onClick={handleCopyLink}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-        >
-          {copied ? (
-            <>
-              <Check className="w-5 h-5 text-green-600" />
-              <span className="text-green-600">Copied!</span>
-            </>
-          ) : (
-            <>
-              <Copy className="w-5 h-5" />
-              Copy Text
-            </>
-          )}
-        </button>
+              <button
+                onClick={() => handleShare('twitter')}
+                className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
+                  <Twitter className="w-4 h-4 text-white" />
+                </div>
+                <span className="font-medium text-gray-700">Twitter / X</span>
+              </button>
 
-        {/* Download CSV Button */}
-        <button
-          onClick={handleDownloadCSV}
-          disabled={downloading}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Download className="w-5 h-5" />
-          {downloading ? 'Downloading...' : 'Download CSV'}
-        </button>
-      </div>
+              <button
+                onClick={() => handleShare('facebook')}
+                className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Facebook className="w-4 h-4 text-white" />
+                </div>
+                <span className="font-medium text-gray-700">Facebook</span>
+              </button>
 
-      {/* Share Preview */}
-      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <p className="text-sm text-gray-600 italic">{shareText}</p>
-      </div>
+              <button
+                onClick={handleCopyLink}
+                className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <div className="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center">
+                  {copied ? (
+                    <Check className="w-4 h-4 text-white" />
+                  ) : (
+                    <Link2 className="w-4 h-4 text-white" />
+                  )}
+                </div>
+                <span className="font-medium text-gray-700">
+                  {copied ? 'Copied!' : 'Copy Link'}
+                </span>
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
     </div>
   );
 }

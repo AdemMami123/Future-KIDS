@@ -8,6 +8,11 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
+        outfit: ['var(--font-outfit)', 'Outfit', 'sans-serif'],
+        cairo: ['var(--font-cairo)', 'Cairo', 'sans-serif'],
+      },
       colors: {
         // Primary - Education Blue (Trust, Learning, Focus)
         primary: {
@@ -121,11 +126,6 @@ const config: Config = {
           900: '#212121',
           950: '#171717',
         },
-      },
-      fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        heading: ['Outfit', 'Inter', 'sans-serif'],
-        mono: ['Fira Code', 'monospace'],
       },
       fontSize: {
         'xs': ['0.75rem', { lineHeight: '1rem' }],
