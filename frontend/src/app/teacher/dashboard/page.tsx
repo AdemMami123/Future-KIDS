@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { getTeacherStats, getTeacherClasses } from '@/lib/classApi';
 import { getTeacherQuizzes } from '@/lib/quizApi';
@@ -42,6 +43,7 @@ interface RecentQuiz {
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const router = useRouter();
   const { error: showError, success: showSuccess } = useToast();
   const [stats, setStats] = useState({
@@ -124,7 +126,7 @@ export default function TeacherDashboard() {
     {
       icon: GraduationCap,
       value: stats.totalClasses,
-      label: 'Total Classes',
+      label: t('teacher.dashboard.totalClasses'),
       gradient: 'from-blue-500 to-blue-600',
       trend: TrendingUp,
       trendColor: 'text-green-500',
@@ -132,7 +134,7 @@ export default function TeacherDashboard() {
     {
       icon: Users,
       value: stats.totalStudents,
-      label: 'Total Students',
+      label: t('teacher.dashboard.totalStudents'),
       gradient: 'from-purple-500 to-purple-600',
       trend: TrendingUp,
       trendColor: 'text-green-500',
@@ -140,7 +142,7 @@ export default function TeacherDashboard() {
     {
       icon: BookOpen,
       value: stats.totalQuizzes,
-      label: 'Quizzes Created',
+      label: t('teacher.dashboard.quizzesCreated'),
       gradient: 'from-green-500 to-green-600',
       trend: Award,
       trendColor: 'text-yellow-500',
@@ -148,11 +150,11 @@ export default function TeacherDashboard() {
     {
       icon: Gamepad2,
       value: stats.activeGames,
-      label: 'Active Games',
+      label: t('teacher.dashboard.activeGames'),
       gradient: 'from-orange-500 to-orange-600',
       isLive: true,
     },
-  ], [stats]);
+  ], [stats, t]);
 
   const handleFormatDifficultyColor = (difficulty: string) => {
     const colorClass = getDifficultyColor(difficulty);
@@ -192,11 +194,11 @@ export default function TeacherDashboard() {
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="w-8 h-8 text-yellow-500" aria-hidden="true" />
                 <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Welcome back, {user?.firstName}!
+                  {t('teacher.dashboard.welcomeBack', { name: user?.firstName || t('common.welcome') })}
                 </h1>
               </div>
               <p className="text-gray-600 text-lg">
-                Here&apos;s your teaching overview for today
+                {t('teacher.dashboard.teachingOverview')}
               </p>
             </div>
             
@@ -206,9 +208,9 @@ export default function TeacherDashboard() {
               onClick={() => loadDashboardData(true)}
               isLoading={isRefreshing}
               leftIcon={<RefreshCw className="w-4 h-4" />}
-              aria-label="Refresh dashboard data"
+              aria-label={t('teacher.dashboard.refreshData')}
             >
-              Refresh
+              {t('teacher.dashboard.refresh')}
             </Button>
           </div>
         </motion.div>
@@ -224,14 +226,14 @@ export default function TeacherDashboard() {
           >
             <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
             <div>
-              <p className="text-red-800 font-medium">Error loading dashboard</p>
+              <p className="text-red-800 font-medium">{t('teacher.dashboard.errorLoading')}</p>
               <p className="text-red-600 text-sm mt-1">{error}</p>
               <Button
                 variant="link"
                 onClick={() => loadDashboardData()}
                 className="mt-2 text-red-700"
               >
-                Try again
+                {t('teacher.dashboard.tryAgain')}
               </Button>
             </div>
           </motion.div>
@@ -252,9 +254,9 @@ export default function TeacherDashboard() {
                     <stat.icon className="w-6 h-6 text-white" aria-hidden="true" />
                   </div>
                   {stat.isLive ? (
-                    <div className="flex items-center gap-1" aria-label="Live indicator">
+                    <div className="flex items-center gap-1" aria-label={t('teacher.dashboard.live')}>
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                      <span className="text-xs text-gray-600">Live</span>
+                      <span className="text-xs text-gray-600">{t('teacher.dashboard.live')}</span>
                     </div>
                   ) : stat.trend && (
                     <stat.trend className={`w-5 h-5 ${stat.trendColor}`} aria-hidden="true" />
@@ -272,7 +274,7 @@ export default function TeacherDashboard() {
           <Card variant="glass" className="mb-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
               <Sparkles className="w-6 h-6 text-purple-600" aria-hidden="true" />
-              Quick Actions
+              {t('teacher.dashboard.quickActions')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Button
@@ -281,7 +283,7 @@ export default function TeacherDashboard() {
                 leftIcon={<Plus className="w-6 h-6" />}
                 size="lg"
               >
-                <span className="font-semibold">Create Quiz</span>
+                <span className="font-semibold">{t('teacher.dashboard.createQuiz')}</span>
               </Button>
               <Button
                 onClick={() => router.push('/teacher/games/create')}
@@ -289,7 +291,7 @@ export default function TeacherDashboard() {
                 leftIcon={<Gamepad2 className="w-6 h-6" />}
                 size="lg"
               >
-                <span className="font-semibold">Start Game</span>
+                <span className="font-semibold">{t('teacher.dashboard.startGame')}</span>
               </Button>
               <Button
                 onClick={() => router.push('/teacher/classes')}
@@ -297,7 +299,7 @@ export default function TeacherDashboard() {
                 leftIcon={<GraduationCap className="w-6 h-6" />}
                 size="lg"
               >
-                <span className="font-semibold">Manage Classes</span>
+                <span className="font-semibold">{t('teacher.dashboard.manageClasses')}</span>
               </Button>
             </div>
           </Card>
