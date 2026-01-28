@@ -6,6 +6,16 @@ const config: Config = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  
+  // Performance optimizations
+  corePlugins: {
+    preflight: true,
+  },
+  
+  // Optimize for smaller bundle size
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     extend: {
       fontFamily: {
@@ -157,17 +167,17 @@ const config: Config = {
         'glow-lg': '0 0 40px rgba(33, 150, 243, 0.4)',
       },
       animation: {
-        'fadeIn': 'fadeIn 0.3s ease-in-out',
-        'fadeOut': 'fadeOut 0.3s ease-in-out',
-        'slideInUp': 'slideInUp 0.3s ease-out',
-        'slideInDown': 'slideInDown 0.3s ease-out',
-        'slideInLeft': 'slideInLeft 0.3s ease-out',
-        'slideInRight': 'slideInRight 0.3s ease-out',
-        'scaleIn': 'scaleIn 0.2s ease-out',
-        'bounce-slow': 'bounce 2s infinite',
-        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'wiggle': 'wiggle 1s ease-in-out infinite',
-        'float': 'float 3s ease-in-out infinite',
+        'fadeIn': 'fadeIn 0.2s ease-out',
+        'fadeOut': 'fadeOut 0.2s ease-out',
+        'slideInUp': 'slideInUp 0.25s ease-out',
+        'slideInDown': 'slideInDown 0.25s ease-out',
+        'slideInLeft': 'slideInLeft 0.25s ease-out',
+        'slideInRight': 'slideInRight 0.25s ease-out',
+        'scaleIn': 'scaleIn 0.15s ease-out',
+        'bounce-slow': 'bounce 1.5s infinite',
+        'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'wiggle': 'wiggle 0.8s ease-in-out infinite',
+        'float': 'float 2s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {

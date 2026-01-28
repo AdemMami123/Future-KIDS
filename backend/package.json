@@ -22,6 +22,7 @@
   "dependencies": {
     "@types/cookie-parser": "^1.4.10",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/redis": "^4.0.10",
     "axios": "^1.13.2",
     "chart.js": "^4.5.1",
     "cloudinary": "^1.41.0",
@@ -31,8 +32,10 @@
     "express": "^4.18.2",
     "express-validator": "^7.0.1",
     "firebase-admin": "^12.0.0",
+    "ioredis": "^5.9.2",
     "jsonwebtoken": "^9.0.3",
     "react-chartjs-2": "^5.3.1",
+    "redis": "^5.10.0",
     "socket.io": "^4.6.1"
   },
   "devDependencies": {

@@ -1,7 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { fastTransition, tapScale } from '@/components/ui/OptimizedMotion';
 
 interface AnswerOptionsProps {
   options: string[];
@@ -24,7 +25,8 @@ export default function AnswerOptions({
 }: AnswerOptionsProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  const getOptionColor = (option: string, index: number) => {
+  // Memoize color calculation to prevent unnecessary recalculations
+  const getOptionColor = useCallback((option: string, index: number) => {
     if (showCorrect && correctAnswer !== undefined) {
       if (option === correctAnswer) {
         return 'bg-green-100 border-green-500 text-green-900';
@@ -43,27 +45,54 @@ export default function AnswerOptions({
     }
 
     return 'bg-white border-gray-200 text-gray-700 hover:border-blue-300';
-  };
+  }, [showCorrect, correctAnswer, selectedAnswer, hoveredIndex, disabled]);
+
+  // Memoize stagger animation to prevent recreation
+  const containerVariants = useMemo(() => ({
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: 0.03, // Reduced stagger for faster loading
+      },
+    },
+  }), []);
+
+  const itemVariants = useMemo(() => ({
+    hidden: { opacity: 0, y: 15 },
+    show: { 
+      opacity: 1, 
+      y: 0,
+      transition: fastTransition,
+    },
+  }), []);
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <motion.div 
+      className="grid gap-4 md:grid-cols-2"
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+    >
       {options.map((option, index) => (
         <motion.button
-          key={index}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
-          whileHover={!disabled ? { scale: 1.02 } : {}}
-          whileTap={!disabled ? { scale: 0.98 } : {}}
+          key={`option-${index}`}
+          variants={itemVariants}
+          whileHover={!disabled ? { scale: 1.01 } : {}}
+          whileTap={!disabled ? tapScale : {}}
           onClick={() => !disabled && onSelect(option)}
           onMouseEnter={() => setHoveredIndex(index)}
           onMouseLeave={() => setHoveredIndex(null)}
           disabled={disabled}
           className={`
-            relative p-6 rounded-xl border-2 transition-all duration-200
+            relative p-6 rounded-xl border-2 transition-colors duration-150
             ${getOptionColor(option, index)}
             ${disabled ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}
-            flex items-center gap-4 text-left
+            will-change-transform
+          `}
+          style={{
+            willChange: 'transform',
+            transform: 'translateZ(0)',
+          }}
           `}
         >
           {/* Option Label */}

@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700;800;900&display=swap');
+/* Optimized font loading for better performance */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Cairo:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -21,10 +22,15 @@
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
 
-  /* Transitions */
-  --transition-fast: 150ms ease-in-out;
-  --transition-base: 250ms ease-in-out;
-  --transition-slow: 350ms ease-in-out;
+  /* Optimized transitions for 60fps performance */
+  --transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Performance optimizations */
+  --will-change-auto: auto;
+  --will-change-transform: transform;
+  --will-change-opacity: opacity;
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -38,6 +44,49 @@
     --foreground: #EDEDED;
     --card-background: #1E1E1E;
     --border-color: #424242;
+  }
+}
+
+/* ===========================
+   PERFORMANCE OPTIMIZATIONS
+   =========================== */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-feature-settings: 'rlig' 1, 'calt' 1;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Optimized focus styles */
+:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Performance-optimized animations */
+.animate-optimized {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -464,8 +513,10 @@ html[dir='rtl'] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
 }
 
 /* ===========================
-   ACCESSIBILITY
+   ACCESSIBILITY (WCAG 2.1 AA)
    =========================== */
+
+/* Screen Reader Only */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -476,6 +527,174 @@ html[dir='rtl'] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* Skip to Main Content Link */
+.skip-to-content {
+  position: fixed;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: 1rem 2rem;
+  background: #1E40AF;
+  color: white;
+  border-radius: 0 0 0.5rem 0.5rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.skip-to-content:focus {
+  top: 0;
+  outline: 3px solid #FBBF24;
+  outline-offset: 2px;
+}
+
+/* Enhanced Focus States for Keyboard Navigation */
+:focus-visible {
+  outline: 3px solid #2563EB;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Remove outline for mouse users, keep for keyboard */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* High Contrast Focus for Interactive Elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid #2563EB;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.2);
+}
+
+/* Focus within for container elements */
+.focus-within-ring:focus-within {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
+
+/* Visible Focus Indicator for Cards and Containers */
+.card:focus-visible,
+[role="listitem"]:focus-visible,
+[role="option"]:focus-visible {
+  outline: 3px solid #2563EB;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.15);
+}
+
+/* Minimum Touch Target Size (44x44px) */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  :root {
+    --color-primary: #0047AB;
+    --color-secondary: #4B0082;
+  }
+  
+  .card {
+    border-width: 2px;
+    border-color: #000000;
+  }
+  
+  button, .btn {
+    border: 2px solid currentColor;
+  }
+  
+  a {
+    text-decoration: underline;
+  }
+}
+
+/* Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .animate-pulse,
+  .animate-spin,
+  .animate-bounce,
+  .animate-ping {
+    animation: none !important;
+  }
+}
+
+/* Forced Colors Mode (Windows High Contrast) */
+@media (forced-colors: active) {
+  .btn-primary,
+  .btn-secondary,
+  .btn-success,
+  .btn-error {
+    border: 2px solid ButtonText;
+  }
+  
+  .card {
+    border: 2px solid CanvasText;
+  }
+  
+  :focus-visible {
+    outline: 3px solid Highlight;
+  }
+}
+
+/* ARIA Live Region Styling */
+[aria-live="polite"],
+[aria-live="assertive"] {
+  position: relative;
+}
+
+[aria-busy="true"] {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+/* Disabled State Accessibility */
+[aria-disabled="true"],
+[disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Error State Styling */
+[aria-invalid="true"] {
+  border-color: #DC2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+}
+
+/* Required Field Indicator */
+.required::after {
+  content: " *";
+  color: #DC2626;
+  font-weight: bold;
+}
+
+/* Color-blind Friendly Focus */
+.colorblind-safe-focus:focus-visible {
+  outline: 3px dashed #000000;
+  outline-offset: 4px;
 }
 
 /* ===========================

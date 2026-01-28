@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { TrendPoint } from '@/lib/parentApi';
+import { fastTransition, staggerContainer, staggerItem } from '@/components/ui/OptimizedMotion';
 
 interface PerformanceTrendProps {
   data: TrendPoint[];
@@ -14,16 +15,31 @@ export default function PerformanceTrend({
   data,
   loading = false,
 }: PerformanceTrendProps) {
+  // Memoize expensive calculations
+  const chartData = useMemo(() => {
+    if (!data?.length) return null;
+    
+    const maxPercentage = Math.max(...data.map((d) => d.percentage));
+    const minPercentage = Math.min(...data.map((d) => d.percentage));
+    const trend = data.length > 1
+      ? data[data.length - 1].percentage - data[0].percentage
+      : 0;
+    
+    return { maxPercentage, minPercentage, trend };
+  }, [data]);
+
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
-        <div className="h-6 w-48 bg-gray-200 rounded mb-4"></div>
-        <div className="h-64 bg-gray-200 rounded"></div>
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="animate-pulse">
+          <div className="h-6 w-48 bg-gray-200 rounded mb-4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
       </div>
     );
   }
 
-  if (data.length === 0) {
+  if (!data?.length || !chartData) {
     return (
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -36,14 +52,15 @@ export default function PerformanceTrend({
     );
   }
 
-  const maxPercentage = Math.max(...data.map((d) => d.percentage));
-  const minPercentage = Math.min(...data.map((d) => d.percentage));
-  const trend = data.length > 1
-    ? data[data.length - 1].percentage - data[0].percentage
-    : 0;
+  const { trend } = chartData;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
+    <motion.div 
+      className="bg-white rounded-xl shadow-sm p-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={fastTransition}
+    >
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-900">Performance Trend</h3>
         {trend !== 0 && (
