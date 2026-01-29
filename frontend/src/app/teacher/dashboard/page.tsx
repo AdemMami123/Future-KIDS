@@ -194,11 +194,11 @@ export default function TeacherDashboard() {
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="w-8 h-8 text-yellow-500" aria-hidden="true" />
                 <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  {t('teacher.dashboard.welcomeBack', { name: user?.firstName || t('common.welcome') })}
+                  {t('teacher dashboard welcomeBack', { name: user?.firstName || t('common.welcome') })}
                 </h1>
               </div>
               <p className="text-gray-600 text-lg">
-                {t('teacher.dashboard.teachingOverview')}
+                {t('teacher dashboard teaching Overview')}
               </p>
             </div>
             
@@ -274,7 +274,7 @@ export default function TeacherDashboard() {
           <Card variant="glass" className="mb-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
               <Sparkles className="w-6 h-6 text-purple-600" aria-hidden="true" />
-              {t('teacher.dashboard.quickActions')}
+              {t('teacher dashboard quickActions')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Button
@@ -291,7 +291,7 @@ export default function TeacherDashboard() {
                 leftIcon={<Gamepad2 className="w-6 h-6" />}
                 size="lg"
               >
-                <span className="font-semibold">{t('teacher.dashboard.startGame')}</span>
+                <span className="font-semibold">{t('teacher dashboard startGame')}</span>
               </Button>
               <Button
                 onClick={() => router.push('/teacher/classes')}
@@ -299,7 +299,7 @@ export default function TeacherDashboard() {
                 leftIcon={<GraduationCap className="w-6 h-6" />}
                 size="lg"
               >
-                <span className="font-semibold">{t('teacher.dashboard.manageClasses')}</span>
+                <span className="font-semibold">{t('teacher dashboard manage Classes')}</span>
               </Button>
             </div>
           </Card>
